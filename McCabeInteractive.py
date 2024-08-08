@@ -30,7 +30,7 @@ def mccabeint(comp1, comp2, xd, xb, xf, P=None, T=None, R=None, q=None, ME=None)
         P = 1e5 # Pa
         Pgiven = False
 
-    #Check for q and R value condition
+    # Check for q and R value condition
     if q is not None and R is None:
         print('Please provide a R value')
         return None
@@ -69,7 +69,6 @@ def mccabeint(comp1, comp2, xd, xb, xf, P=None, T=None, R=None, q=None, ME=None)
     ax1.set_xlim(0, 1)
     ax1.set_xlabel(f'Liquid mole fraction {comp1}', fontsize = 16)
     ax1.set_ylabel(f'Vapor mole fraction {comp1}', fontsize = 16)
-    #ax1.legend([r'$X_{e}$',r'$X_{EB}$'], loc='upper right')
     if ME is not None:
         ax1.plot(xi, p(xi), ls = '--', color = 'purple', label = 'Murphree Efficiency Curve')
     
@@ -111,8 +110,8 @@ def mccabeint(comp1, comp2, xd, xb, xf, P=None, T=None, R=None, q=None, ME=None)
         ybottofeed = (ysol-xb)*(xbottofeed-xb)/(xsol-xb)+xb
 
         # Plot the lines using the generated points with shortened variable names
-        p1, = ax1.plot(xfeedtorect, yfeedtorect, color='red', label='Feed to Rectifying Line')
-        p2, = ax1.plot(xdisttofeed, ydisttofeed, color='pink', label='Distillate to Feed Line')
+        p1, = ax1.plot(xdisttofeed, ydisttofeed, color='pink', label='Distillate to Feed Line')
+        p2, = ax1.plot(xfeedtorect, yfeedtorect, color='red', label='Feed to Rectifying Line')
         p3, = ax1.plot(xbottofeed, ybottofeed, color='green', label='Bottom to Feed Line')
 
     # Create sliders
@@ -157,11 +156,17 @@ def mccabeint(comp1, comp2, xd, xb, xf, P=None, T=None, R=None, q=None, ME=None)
                 ysol = rectifying(xsol)
 
         # Update the data of the plot lines
+        xfeedtorect = np.linspace(xf, xsol, 100)
         yfeedtorect = (ysol-xf)*(xfeedtorect-xf)/(xsol-xf)+xf
+        xdisttofeed = np.linspace(xd, xsol, 100)
         ydisttofeed = (ysol-xd)*(xdisttofeed-xd)/(xsol-xd)+xd
+        xbottofeed = np.linspace(xb, xsol, 100)
         ybottofeed = (ysol-xb)*(xbottofeed-xb)/(xsol-xb)+xb
-        p1.set_ydata(yfeedtorect)
-        p2.set_ydata(ydisttofeed)
+        p1.set_xdata(xdisttofeed)
+        p2.set_xdata(xfeedtorect)
+        p3.set_xdata(xbottofeed)
+        p1.set_ydata(ydisttofeed)
+        p2.set_ydata(yfeedtorect)
         p3.set_ydata(ybottofeed)
         fig.canvas.draw_idle()
 
@@ -181,7 +186,8 @@ def mccabeint(comp1, comp2, xd, xb, xf, P=None, T=None, R=None, q=None, ME=None)
         s_q.reset()
         s_R.reset()
         
-    button.on_clicked(reset)    
+    button.on_clicked(reset) 
+    ax1.legend([r'$Equilibrium\ Line$',r'$y=x\ Line$',r'$Rectifying\ Section$',r'$Feed\ Section$',r'$Stripping\ Section$'], loc='lower right')  
     plt.show()
 
 #%%
