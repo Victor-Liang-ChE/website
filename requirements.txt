@@ -1,0 +1,5 @@
+pip==24.2
+thermo==0.2.27
+matplotlib==3.7.0
+scipy==1.10.0
+dash==2.18.0
