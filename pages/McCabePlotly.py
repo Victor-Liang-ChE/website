@@ -140,6 +140,7 @@ fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
 layout = html.Div([
     html.H1("McCabe-Thiele Method Plot"),
     dcc.Graph(id='mccabe-plot', figure=fig),
+    html.Div(id='stages-output', style={'margin-top': '20px'}),
     html.Label('Component 1:'),
     dcc.Input(id='comp1-input', type='text', value='methanol'),
     html.Label('Component 2:'),
@@ -225,6 +226,7 @@ def compute_xy(n_clicks, comp1, comp2, T, P):
 
 @callback(
     Output('mccabe-plot', 'figure', allow_duplicate=True),
+    Output('stages-output', 'children'),
     Input('xd-slider', 'value'),
     Input('xb-slider', 'value'),
     Input('xf-slider', 'value'),
@@ -283,11 +285,28 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
         ydisttofeed = (ysol-xd)*(xdisttofeed-xd)/(xsol-xd)+xd
         xbottofeed = np.linspace(xb, xsol, 100)
         ybottofeed = (ysol-xb)*(xbottofeed-xb)/(xsol-xb)+xb
-
         patched_figure['data'].extend([
-            {'name': 'Rectifying Section', 'x': xdisttofeed, 'y': ydisttofeed},
-            {'name': 'Feed Section', 'x': xfeedtorect, 'y': yfeedtorect},
-            {'name': 'Stripping Section', 'x': xbottofeed, 'y': ybottofeed}
+            {
+                'name': 'Rectifying Section',
+                'x': xdisttofeed,
+                'y': ydisttofeed,
+                'mode': 'lines',
+                'line': {'color': 'orange'}
+            },
+            {
+                'name': 'Feed Section',
+                'x': xfeedtorect,
+                'y': yfeedtorect,
+                'mode': 'lines',
+                'line': {'color': 'red'}
+            },
+            {
+                'name': 'Stripping Section',
+                'x': xbottofeed,
+                'y': ybottofeed,
+                'mode': 'lines',
+                'line': {'color': 'green'}
+            }
         ])
         stages = 0
         x = xd
@@ -340,12 +359,33 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
         xstripvertsegmentlist = [x for sublist in xstripvertsegment for x in sublist]
         ystripvertsegmentlist = [y for sublist in ystripvertsegment for y in sublist]
 
-        patched_figure['data'].extend([
-            {'name': 'horzsegment', 'x': xhorzsegmentlist, 'y': yhorzsegmentlist},
-            {'name': 'rectvertsegment', 'x': xrectvertsegmentlist, 'y': yrectvertsegmentlist},
-            {'name': 'stripvertsegment', 'x': xstripvertsegmentlist, 'y': ystripvertsegmentlist}
-        ])
+    patched_figure['data'].extend([
+        {
+            'name': 'horzsegment',
+            'x': xhorzsegmentlist,
+            'y': yhorzsegmentlist,
+            'mode': 'lines',
+            'line': {'color': 'black'},
+            'showlegend': False
+        },
+        {
+            'name': 'rectvertsegment',
+            'x': xrectvertsegmentlist,
+            'y': yrectvertsegmentlist,
+            'mode': 'lines',
+            'line': {'color': 'black'},
+            'showlegend': False
+        },
+        {
+            'name': 'stripvertsegment',
+            'x': xstripvertsegmentlist,
+            'y': ystripvertsegmentlist,
+            'mode': 'lines',
+            'line': {'color': 'black'},
+            'showlegend': False
+        }
+    ])
 
-    return patched_figure
+    return patched_figure, f"Number of stages: {stages}"
 
 # %%
