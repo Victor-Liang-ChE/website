@@ -30,7 +30,7 @@ if q is not None and R is not None:
         rectifyslope = R/(R + 1)
 
 xi, yi = xy(comp1, comp2, T=T, values=True, show=False) # this function lags the app, do not use in the slider callbacks
-z = np.polyfit(xi, yi, 7)
+z = np.polyfit(xi, yi, 10)
 p = np.poly1d(z)
 
 fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='blue'), uid='equilibrium'))
@@ -139,7 +139,14 @@ fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2}",
 layout = html.Div([
     html.H1("McCabe-Thiele Method Plot"),
     dcc.Graph(id='mccabe-plot', figure=fig),
-    # dcc.Store(id='p', data=p),
+    html.Label('Component 1:'),
+    dcc.Input(id='comp1-input', type='text', value='methanol'),
+    html.Label('Component 2:'),
+    dcc.Input(id='comp2-input', type='text', value='water'),
+    html.Label('Temperature (K):'),
+    dcc.Input(id='temperature-input', type='number', value=300),
+    html.Label('Pressure (Pa):'),
+    dcc.Input(id='pressure-input', type='number', value=101325),
     html.Label('Distillate composition (xd):'),
     dcc.Slider(id='xd-slider', 
                min=0, 
@@ -283,10 +290,14 @@ def update_plot(xd, xb, xf, q, R): # use Patch to update the plot
                 y = rectifying(intersect)
                 feedstage += 1
             else:
+                yend = (ysol-xb)*(intersect-xb)/(xsol-xb)+xb
                 xstripvertsegment.append(np.linspace(intersect, intersect, 100))
-                ystripvertsegment.append(np.linspace(y, stripping(intersect), 100))
+                if yend < intersect:
+                    ystripvertsegment.append(np.linspace(y, intersect, 100))
+                else:
+                    ystripvertsegment.append(np.linspace(y, (ysol-xb)*(intersect-xb)/(xsol-xb)+xb, 100))
                 x = intersect
-                y = stripping(intersect)
+                y = (ysol-xb)*(x-xb)/(xsol-xb)+xb
             stages += 1
 
         xhorzsegmentlist = [x for sublist in xhorzsegment for x in sublist]
