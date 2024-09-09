@@ -3,148 +3,143 @@ import numpy as np
 import plotly.graph_objects as go
 import dash
 from scipy.optimize import fsolve
-from dash import dcc, html, Input, Output, callback
+from dash import dcc, html, Input, Output, callback, Patch
 from TxyPxyxy import xy
 
 dash.register_page(__name__, path='/', name="McCabe-Thiele Plot")
 
-def mccabeint(comp1, comp2, P=None, T=None, xd=0.9, xb=0.1, xf=0.5, q=0.5, R=2):
+fig = go.Figure()
+comp1 = "methanol"
+comp2 = "water"
+T = 300
+xd = 0.9
+xb = 0.1
+xf = 0.5
+q = 0.5
+R = 2
 
-    if P is None and T is None:
-        print('Please provide either a temperature or a pressure')
-        return None
-    if P is not None:
-        T = 273.15
-        Pgiven = True
-    elif T is not None:
-        P = 1e5
-        Pgiven = False
+if q is not None and R is not None:
+    if q == 1:
+        feedslope = 1e10
+    else:
+        feedslope = q/(q-1)
 
-    if q is not None and R is not None:
-        if q == 1:
-            feedslope = 1e10
-        else:
-            feedslope = q/(q-1)
+    if R == -1:
+        rectifyslope = 1e10
+    else:
+        rectifyslope = R/(R + 1)
 
-        if R == -1:
-            rectifyslope = 1e10
-        else:
-            rectifyslope = R/(R + 1)
+xi, yi = xy(comp1, comp2, T=T, values=True, show=False) # this function lags the app, do not use in the slider callbacks
+z = np.polyfit(xi, yi, 7)
+p = np.poly1d(z)
 
-    xi, yi = xy(comp1, comp2, T=T, values=True, show=False)
-    z = np.polyfit(xi, yi, 10)
-    p = np.poly1d(z)
+fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='blue'), uid='equilibrium'))
+fig.add_trace(go.Scatter(x=xi, y=xi, mode='lines', name='y=x Line', line=dict(color='black'), uid='yx'))
 
-    fig = go.Figure()
+if q is not None and R is not None:
+    def rectifying(xval):
+        return R/(R+1)*xval + xd/(R+1)
+    def feed(xval):
+        return q/(q-1)*xval - xf/(q-1)
+    def feedrectintersection(xval):
+        return q/(q-1)*xval - xf/(q-1) - R/(R+1)*xval - xd/(R+1)
+    xguess = xf*q
+    if R == -1:
+        R = -1 + 1e-10
+        xsol = xd
+        ysol = feed(xsol)
+    elif q == 1:
+        q == 1 + 1e-10
+        xsol = xf
+        ysol = rectifying(xsol)
+    else:
+        xsol = fsolve(feedrectintersection, xguess)
+        ysol = rectifying(xsol)
 
-    fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=xi, y=xi, mode='lines', name='y=x Line', line=dict(color='black')))
+    if isinstance(xsol, np.ndarray):
+        xsol = xsol[0]
+    if isinstance(ysol, np.ndarray):
+        ysol = ysol[0]
 
-    if q is not None and R is not None:
-        def rectifying(xval):
-            return R/(R+1)*xval + xd/(R+1)
-        def feed(xval):
-            return q/(q-1)*xval - xf/(q-1)
-        def feedrectintersection(xval):
-            return q/(q-1)*xval - xf/(q-1) - R/(R+1)*xval - xd/(R+1)
-        xguess = xf*q
-        if R == -1:
-            R = -1 + 1e-10
-            xsol = xd
-            ysol = feed(xsol)
-        elif q == 1:
-            q == 1 + 1e-10
-            xsol = xf
-            ysol = rectifying(xsol)
-        else:
-            xsol = fsolve(feedrectintersection, xguess)
-            ysol = rectifying(xsol)
+    def stripping(xval):
+        return (ysol-xb)*(xval-xb)/(xsol-xb)+xb
 
-        if isinstance(xsol, np.ndarray):
-            xsol = xsol[0]
-        if isinstance(ysol, np.ndarray):
-            ysol = ysol[0]
+    xfeedtorect = np.linspace(xf, xsol, 100)
+    yfeedtorect = (ysol-xf)*(xfeedtorect-xf)/(xsol-xf)+xf
+    xdisttofeed = np.linspace(xd, xsol, 100)
+    ydisttofeed = (ysol-xd)*(xdisttofeed-xd)/(xsol-xd)+xd
+    xbottofeed = np.linspace(xb, xsol, 100)
+    ybottofeed = (ysol-xb)*(xbottofeed-xb)/(xsol-xb)+xb
 
-        def stripping(xval):
-            return (ysol-xb)*(xval-xb)/(xsol-xb)+xb
+    fig.add_trace(go.Scatter(x=xdisttofeed, y=ydisttofeed, mode='lines', name='Rectifying Section', line=dict(color='orange'), uid='rectifying'))
+    fig.add_trace(go.Scatter(x=xfeedtorect, y=yfeedtorect, mode='lines', name='Feed Section', line=dict(color='red'), uid='feed'))
+    fig.add_trace(go.Scatter(x=xbottofeed, y=ybottofeed, mode='lines', name='Stripping Section', line=dict(color='green'), uid='stripping'))
 
-        xfeedtorect = np.linspace(xf, xsol, 100)
-        yfeedtorect = (ysol-xf)*(xfeedtorect-xf)/(xsol-xf)+xf
-        xdisttofeed = np.linspace(xd, xsol, 100)
-        ydisttofeed = (ysol-xd)*(xdisttofeed-xd)/(xsol-xd)+xd
-        xbottofeed = np.linspace(xb, xsol, 100)
-        ybottofeed = (ysol-xb)*(xbottofeed-xb)/(xsol-xb)+xb
+stages = 0
+x = xd
+y = xd
+xs = [x]
+ys = [y]
+xhorzsegment = []
+yhorzsegment = []
+xrectvertsegment = []
+yrectvertsegment = []
+xstripvertsegment = []
+ystripvertsegment = []
+feedstage = 1
+while x > xb:
+    def difference(xval):
+        return p(xval) - y
+    intersect = fsolve(difference, 0)
+    if intersect > x or intersect == x:
+        print('Cannot perform McCabe-Thiele Method as equilibrium curve is below y=x at distillation composition')
+        break
+    if isinstance(x, np.ndarray):
+        x = x[0]
+    if isinstance(y, np.ndarray):
+        y = y[0]
+    if isinstance(intersect, np.ndarray):
+        intersect = intersect[0]
 
-        fig.add_trace(go.Scatter(x=xdisttofeed, y=ydisttofeed, mode='lines', name='Rectifying Section', line=dict(color='orange')))
-        fig.add_trace(go.Scatter(x=xfeedtorect, y=yfeedtorect, mode='lines', name='Feed Section', line=dict(color='red')))
-        fig.add_trace(go.Scatter(x=xbottofeed, y=ybottofeed, mode='lines', name='Stripping Section', line=dict(color='green')))
+    xhorzsegment.append(np.linspace(x, intersect, 100))
+    yhorzsegment.append(np.linspace(y, y, 100))
 
-    stages = 0
-    x = xd
-    y = xd
-    xs = [x]
-    ys = [y]
-    xhorzsegment = []
-    yhorzsegment = []
-    xrectvertsegment = []
-    yrectvertsegment = []
-    xstripvertsegment = []
-    ystripvertsegment = []
-    feedstage = 1
-    while x > xb:
-        def difference(xval):
-            return p(xval) - y
-        intersect = fsolve(difference, 0)
-        if intersect > x or intersect == x:
-            print('Cannot perform McCabe-Thiele Method as equilibrium curve is below y=x at distillation composition')
-            break
-        if isinstance(x, np.ndarray):
-            x = x[0]
-        if isinstance(y, np.ndarray):
-            y = y[0]
-        if isinstance(intersect, np.ndarray):
-            intersect = intersect[0]
+    if intersect > xsol:
+        xrectvertsegment.append(np.linspace(intersect, intersect, 100))
+        yrectvertsegment.append(np.linspace(y, rectifying(intersect), 100))
+        x = intersect
+        y = rectifying(intersect)
+        feedstage += 1
+    else:
+        xstripvertsegment.append(np.linspace(intersect, intersect, 100))
+        ystripvertsegment.append(np.linspace(y, stripping(intersect), 100))
+        x = intersect
+        y = stripping(intersect)
+    stages += 1
 
-        xhorzsegment.append(np.linspace(x, intersect, 100))
-        yhorzsegment.append(np.linspace(y, y, 100))
+xhorzsegmentlist = [x for sublist in xhorzsegment for x in sublist]
+yhorzsegmentlist = [y for sublist in yhorzsegment for y in sublist]
+xrectvertsegmentlist = [x for sublist in xrectvertsegment for x in sublist]
+yrectvertsegmentlist = [y for sublist in yrectvertsegment for y in sublist]
+xstripvertsegmentlist = [x for sublist in xstripvertsegment for x in sublist]
+ystripvertsegmentlist = [y for sublist in ystripvertsegment for y in sublist]
 
-        if intersect > xsol:
-            xrectvertsegment.append(np.linspace(intersect, intersect, 100))
-            yrectvertsegment.append(np.linspace(y, rectifying(intersect), 100))
-            x = intersect
-            y = rectifying(intersect)
-            feedstage += 1
-        else:
-            xstripvertsegment.append(np.linspace(intersect, intersect, 100))
-            ystripvertsegment.append(np.linspace(y, stripping(intersect), 100))
-            x = intersect
-            y = stripping(intersect)
-        stages += 1
+fig.add_trace(go.Scatter(x=xhorzsegmentlist, y=yhorzsegmentlist, mode='lines', line=dict(color='black'), uid='horzsegment', showlegend=False))
+fig.add_trace(go.Scatter(x=xrectvertsegmentlist, y=yrectvertsegmentlist, mode='lines', line=dict(color='black'), uid='rectvertsegment', showlegend=False))
+fig.add_trace(go.Scatter(x=xstripvertsegmentlist, y=ystripvertsegmentlist, mode='lines', line=dict(color='black'), uid='stripvertsegment', showlegend=False))
 
-    xhorzsegmentlist = [x for sublist in xhorzsegment for x in sublist]
-    yhorzsegmentlist = [y for sublist in yhorzsegment for y in sublist]
-    xrectvertsegmentlist = [x for sublist in xrectvertsegment for x in sublist]
-    yrectvertsegmentlist = [y for sublist in yrectvertsegment for y in sublist]
-    xstripvertsegmentlist = [x for sublist in xstripvertsegment for x in sublist]
-    ystripvertsegmentlist = [y for sublist in ystripvertsegment for y in sublist]
+fig.add_trace(go.Scatter(x=[xd, xb, xf], y=[xd, xb, xf], mode='markers', marker=dict(color='red'), uid='markers'))
 
-    fig.add_trace(go.Scatter(x=xhorzsegmentlist, y=yhorzsegmentlist, mode='lines', line=dict(color='black')))
-    fig.add_trace(go.Scatter(x=xrectvertsegmentlist, y=yrectvertsegmentlist, mode='lines', line=dict(color='black')))
-    fig.add_trace(go.Scatter(x=xstripvertsegmentlist, y=ystripvertsegmentlist, mode='lines', line=dict(color='black')))
-
-    fig.add_trace(go.Scatter(x=[xd, xb, xf], y=[xd, xb, xf], mode='markers', marker=dict(color='red')))
-
-    fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2}",
-                      xaxis_title=f'Liquid mole fraction {comp1}',
-                      yaxis_title=f'Vapor mole fraction {comp1}',
-                      xaxis=dict(range=[0, 1], constrain='domain'),
-                      yaxis=dict(range=[0, 1], scaleanchor='x', scaleratio=1))
-
-    return fig
+fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2}",
+                xaxis_title=f'Liquid mole fraction {comp1}',
+                yaxis_title=f'Vapor mole fraction {comp1}',
+                xaxis=dict(range=[0, 1], constrain='domain'),
+                yaxis=dict(range=[0, 1], scaleanchor='x', scaleratio=1))
 
 layout = html.Div([
     html.H1("McCabe-Thiele Method Plot"),
-    dcc.Graph(id='mccabe-plot'),
+    dcc.Graph(id='mccabe-plot', figure=fig),
+    # dcc.Store(id='p', data=p),
     html.Label('Distillate composition (xd):'),
     dcc.Slider(id='xd-slider', 
                min=0, 
@@ -188,12 +183,125 @@ layout = html.Div([
 ])
 
 @callback(
-    Output('mccabe-plot', 'figure'),
+    Output('mccabe-plot', 'figure', allow_duplicate=True),
     Input('xd-slider', 'value'),
     Input('xb-slider', 'value'),
     Input('xf-slider', 'value'),
     Input('q-slider', 'value'),
-    Input('R-slider', 'value')
+    Input('R-slider', 'value'), # add inputs from text boxes for components?
+    prevent_initial_call=True
 )
-def update_plot(xd, xb, xf, q, R):
-    return mccabeint(comp1='methanol', comp2='water', T=300, xd=xd, xb=xb, xf=xf, q=q, R=R)
+def update_plot(xd, xb, xf, q, R): # use Patch to update the plot
+    comp1 = 'methanol'
+    comp2 = 'water'
+    T = 300
+    global p
+    global xi
+    global yi
+
+    patched_figure = Patch()
+    patched_figure['data'] = []
+
+    patched_figure['data'].extend([
+        {'name': 'Equilibrium Line', 'x': xi, 'y': p(xi), 'mode': 'lines', 'line': {'color': 'blue'}},
+        {'name': 'y=x Line', 'x': xi, 'y': xi, 'mode': 'lines', 'line': {'color': 'black'}}
+    ])
+
+    if q is not None and R is not None:
+        def rectifying(xval):
+            return R/(R+1)*xval + xd/(R+1)
+        def feed(xval):
+            return q/(q-1)*xval - xf/(q-1)
+        def feedrectintersection(xval):
+            return q/(q-1)*xval - xf/(q-1) - R/(R+1)*xval - xd/(R+1)
+        xguess = xf*q
+        if R == -1:
+            R = -1 + 1e-10
+            xsol = xd
+            ysol = feed(xsol)
+        elif q == 1:
+            q == 1 + 1e-10
+            xsol = xf
+            ysol = rectifying(xsol)
+        else:
+            xsol = fsolve(feedrectintersection, xguess)
+            ysol = rectifying(xsol)
+
+        if isinstance(xsol, np.ndarray):
+            xsol = xsol[0]
+        if isinstance(ysol, np.ndarray):
+            ysol = ysol[0]
+
+        def stripping(xval):
+            return (ysol-xb)*(xval-xb)/(xsol-xb)+xb
+
+        xfeedtorect = np.linspace(xf, xsol, 100)
+        yfeedtorect = (ysol-xf)*(xfeedtorect-xf)/(xsol-xf)+xf
+        xdisttofeed = np.linspace(xd, xsol, 100)
+        ydisttofeed = (ysol-xd)*(xdisttofeed-xd)/(xsol-xd)+xd
+        xbottofeed = np.linspace(xb, xsol, 100)
+        ybottofeed = (ysol-xb)*(xbottofeed-xb)/(xsol-xb)+xb
+
+        patched_figure['data'].extend([
+            {'name': 'Rectifying Section', 'x': xdisttofeed, 'y': ydisttofeed},
+            {'name': 'Feed Section', 'x': xfeedtorect, 'y': yfeedtorect},
+            {'name': 'Stripping Section', 'x': xbottofeed, 'y': ybottofeed}
+        ])
+        stages = 0
+        x = xd
+        y = xd
+        xs = [x]
+        ys = [y]
+        xhorzsegment = []
+        yhorzsegment = []
+        xrectvertsegment = []
+        yrectvertsegment = []
+        xstripvertsegment = []
+        ystripvertsegment = []
+        feedstage = 1
+        while x > xb:
+            def difference(xval):
+                return p(xval) - y
+            intersect = fsolve(difference, 0)
+            if intersect > x or intersect == x:
+                print('Cannot perform McCabe-Thiele Method as equilibrium curve is below y=x at distillation composition')
+                break
+            if isinstance(x, np.ndarray):
+                x = x[0]
+            if isinstance(y, np.ndarray):
+                y = y[0]
+            if isinstance(intersect, np.ndarray):
+                intersect = intersect[0]
+
+            xhorzsegment.append(np.linspace(x, intersect, 100))
+            yhorzsegment.append(np.linspace(y, y, 100))
+
+            if intersect > xsol:
+                xrectvertsegment.append(np.linspace(intersect, intersect, 100))
+                yrectvertsegment.append(np.linspace(y, rectifying(intersect), 100))
+                x = intersect
+                y = rectifying(intersect)
+                feedstage += 1
+            else:
+                xstripvertsegment.append(np.linspace(intersect, intersect, 100))
+                ystripvertsegment.append(np.linspace(y, stripping(intersect), 100))
+                x = intersect
+                y = stripping(intersect)
+            stages += 1
+
+        xhorzsegmentlist = [x for sublist in xhorzsegment for x in sublist]
+        yhorzsegmentlist = [y for sublist in yhorzsegment for y in sublist]
+        xrectvertsegmentlist = [x for sublist in xrectvertsegment for x in sublist]
+        yrectvertsegmentlist = [y for sublist in yrectvertsegment for y in sublist]
+        xstripvertsegmentlist = [x for sublist in xstripvertsegment for x in sublist]
+        ystripvertsegmentlist = [y for sublist in ystripvertsegment for y in sublist]
+
+        patched_figure['data'].extend([
+            {'name': 'horzsegment', 'x': xhorzsegmentlist, 'y': yhorzsegmentlist},
+            {'name': 'rectvertsegment', 'x': xrectvertsegmentlist, 'y': yrectvertsegmentlist},
+            {'name': 'stripvertsegment', 'x': xstripvertsegmentlist, 'y': ystripvertsegmentlist}
+        ])
+
+    return patched_figure
+
+# %%
