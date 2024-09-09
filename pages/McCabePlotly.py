@@ -12,6 +12,7 @@ fig = go.Figure()
 comp1 = "methanol"
 comp2 = "water"
 T = 300
+P = None
 xd = 0.9
 xb = 0.1
 xf = 0.5
@@ -130,7 +131,7 @@ fig.add_trace(go.Scatter(x=xstripvertsegmentlist, y=ystripvertsegmentlist, mode=
 
 fig.add_trace(go.Scatter(x=[xd, xb, xf], y=[xd, xb, xf], mode='markers', marker=dict(color='red'), uid='markers'))
 
-fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2}",
+fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
                 xaxis_title=f'Liquid mole fraction {comp1}',
                 yaxis_title=f'Vapor mole fraction {comp1}',
                 xaxis=dict(range=[0, 1], constrain='domain'),
@@ -192,10 +193,9 @@ layout = html.Div([
                value=2, 
                marks={i: str(round(i, 1)) for i in np.arange(0, 10.1, 0.5)}, 
                updatemode='drag'),
-    dcc.Store(id='xi-store'),
-    dcc.Store(id='yi-store'),
+    dcc.Store(id='xi-store', data=xi), # the data here is the initial value and will be changed by the slider
+    dcc.Store(id='yi-store', data=yi),
 ])
-
 
 @callback(
     Output('confirm-dialog', 'displayed'),
