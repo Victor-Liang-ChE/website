@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 import dash
 from scipy.optimize import fsolve
-from dash import dcc, html, Input, Output, callback, Patch
+from dash import dcc, html, Input, Output, callback, Patch, State
 from TxyPxyxy import xy
 
 dash.register_page(__name__, path='/', name="McCabe-Thiele Plot")
@@ -146,7 +146,12 @@ layout = html.Div([
     html.Label('Temperature (K):'),
     dcc.Input(id='temperature-input', type='number', value=300),
     html.Label('Pressure (Pa):'),
-    dcc.Input(id='pressure-input', type='number', value=101325),
+    dcc.Input(id='pressure-input', type='number'),
+    html.Button('Submit', id='submit-button', n_clicks=0),
+    dcc.ConfirmDialog(
+        id='confirm-dialog',
+        message='',
+    ),
     html.Label('Distillate composition (xd):'),
     dcc.Slider(id='xd-slider', 
                min=0, 
@@ -186,8 +191,37 @@ layout = html.Div([
                step=0.1, 
                value=2, 
                marks={i: str(round(i, 1)) for i in np.arange(0, 10.1, 0.5)}, 
-               updatemode='drag')
+               updatemode='drag'),
+    dcc.Store(id='xi-store'),
+    dcc.Store(id='yi-store'),
 ])
+
+
+@callback(
+    Output('confirm-dialog', 'displayed'),
+    Output('confirm-dialog', 'message'),
+    Output('xi-store', 'data'),
+    Output('yi-store', 'data'),
+    Input('submit-button', 'n_clicks'),
+    State('comp1-input', 'value'),
+    State('comp2-input', 'value'),
+    State('temperature-input', 'value'),
+    State('pressure-input', 'value'),
+)
+def compute_xy(n_clicks, comp1, comp2, T, P):
+    if n_clicks > 0:
+        if T is not None and P is not None:
+            return True, 'If you input both temperature and pressure, the graphing will not work.', dash.no_update, dash.no_update
+        if not comp1 or not comp2 or (T is None and P is None):
+            return True, 'You must input both components and at least a temperature or a pressure to graph.', dash.no_update, dash.no_update
+        
+        if P is None:
+            xi, yi = xy(comp1, comp2, T=T, values=True, show=False)
+        else:
+            xi, yi = xy(comp1, comp2, P=P, values=True, show=False)
+        
+        return False, '', xi, yi
+    return False, '', dash.no_update, dash.no_update
 
 @callback(
     Output('mccabe-plot', 'figure', allow_duplicate=True),
@@ -196,15 +230,16 @@ layout = html.Div([
     Input('xf-slider', 'value'),
     Input('q-slider', 'value'),
     Input('R-slider', 'value'), # add inputs from text boxes for components?
+    Input('xi-store', 'data'),
+    Input('yi-store', 'data'),
     prevent_initial_call=True
 )
-def update_plot(xd, xb, xf, q, R): # use Patch to update the plot
+def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
     comp1 = 'methanol'
     comp2 = 'water'
     T = 300
-    global p
-    global xi
-    global yi
+    z = np.polyfit(xi, yi, 10)
+    p = np.poly1d(z)
 
     patched_figure = Patch()
     patched_figure['data'] = []
@@ -257,8 +292,6 @@ def update_plot(xd, xb, xf, q, R): # use Patch to update the plot
         stages = 0
         x = xd
         y = xd
-        xs = [x]
-        ys = [y]
         xhorzsegment = []
         yhorzsegment = []
         xrectvertsegment = []
