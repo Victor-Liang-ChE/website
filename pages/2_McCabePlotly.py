@@ -6,7 +6,7 @@ from scipy.optimize import fsolve
 from dash import dcc, html, Input, Output, callback, Patch, State
 from TxyPxyxy import xy
 
-dash.register_page(__name__, path='/', name="McCabe-Thiele Plot")
+dash.register_page(__name__, path='/mccabe', name="McCabe-Thiele Interactive Plot")
 
 fig = go.Figure()
 comp1 = "methanol"
@@ -31,7 +31,7 @@ if q is not None and R is not None:
         rectifyslope = R/(R + 1)
 
 xi, yi = xy(comp1, comp2, T=T, values=True, show=False) # this function lags the app, do not use in the slider callbacks
-z = np.polyfit(xi, yi, 10)
+z = np.polyfit(xi, yi, 20)
 p = np.poly1d(z)
 
 fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='blue'), uid='equilibrium'))
@@ -137,63 +137,80 @@ fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
                 xaxis=dict(range=[0, 1], constrain='domain'),
                 yaxis=dict(range=[0, 1], scaleanchor='x', scaleratio=1))
 
+##################LAYOUT##################
 layout = html.Div([
-    html.H1("McCabe-Thiele Method Plot"),
-    dcc.Graph(id='mccabe-plot', figure=fig),
-    html.Div(id='stages-output', style={'margin-top': '20px'}),
-    html.Label('Component 1:'),
-    dcc.Input(id='comp1-input', type='text', value='methanol'),
-    html.Label('Component 2:'),
-    dcc.Input(id='comp2-input', type='text', value='water'),
-    html.Label('Temperature (K):'),
-    dcc.Input(id='temperature-input', type='number', value=300),
-    html.Label('Pressure (Pa):'),
-    dcc.Input(id='pressure-input', type='number'),
-    html.Button('Submit', id='submit-button', n_clicks=0),
-    dcc.ConfirmDialog(
-        id='confirm-dialog',
-        message='',
-    ),
-    html.Label('Distillate composition (xd):'),
-    dcc.Slider(id='xd-slider', 
-               min=0, 
-               max=1, 
-               step=0.01, 
-               value=0.9, 
-               marks={i: str(round(i, 1)) for i in np.arange(0, 1.1, 0.1)}, 
-               updatemode='drag'),
-    html.Label('Bottoms composition (xb):'),
-    dcc.Slider(id='xb-slider', 
-               min=0, 
-               max=1, 
-               step=0.01, 
-               value=0.1, 
-               marks={i: str(round(i, 1)) for i in np.arange(0, 1.1, 0.1)}, 
-               updatemode='drag'),
-    html.Label('Feed composition (xf):'),
-    dcc.Slider(id='xf-slider', 
-               min=0, 
-               max=1, 
-               step=0.01, 
-               value=0.5, 
-               marks={i: str(round(i, 1)) for i in np.arange(0, 1.1, 0.1)}, 
-               updatemode='drag'),
-    html.Label('Feed quality (q):'),
-    dcc.Slider(id='q-slider', 
-               min=-2, 
-               max=2, 
-               step=0.1, 
-               value=0.5, 
-               marks={i: str(round(i, 1)) for i in np.arange(-2, 2.1, 0.2)}, 
-               updatemode='drag'),
-    html.Label('Reflux ratio (R):'),
-    dcc.Slider(id='R-slider', 
-               min=0, 
-               max=10, 
-               step=0.1, 
-               value=2, 
-               marks={i: str(round(i, 1)) for i in np.arange(0, 10.1, 0.5)}, 
-               updatemode='drag'),
+    html.Div([
+        html.Div([
+            html.Label('Component 1:', style={'display': 'block', 'margin-bottom': '10px'}),
+            dcc.Input(id='comp1-input', type='text', value='methanol', style={'width': '100%', 'margin-bottom': '10px'}),
+            html.Label('Component 2:', style={'display': 'block', 'margin-bottom': '10px'}),
+            dcc.Input(id='comp2-input', type='text', value='water', style={'width': '100%', 'margin-bottom': '10px'}),
+            html.Label('Temperature (K):', style={'display': 'block', 'margin-bottom': '10px'}),
+            dcc.Input(id='temperature-input', type='number', value=300, style={'width': '100%', 'margin-bottom': '10px'}),
+            html.Label('Pressure (Pa):', style={'display': 'block', 'margin-bottom': '10px'}),
+            dcc.Input(id='pressure-input', type='number', style={'width': '100%', 'margin-bottom': '10px'}),
+            html.Button('Submit', id='submit-button', n_clicks=0, style={'margin-bottom': '10px'}),
+            dcc.ConfirmDialog(
+                id='confirm-dialog',
+                message='',
+            ),
+            html.Label('Distillate composition (xd):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Div([
+                dcc.Slider(id='xd-slider', 
+                           min=0, 
+                           max=1, 
+                           step=0.01, 
+                           value=0.9, 
+                           marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
+                           updatemode='drag')
+            ], style={'margin-bottom': '5px'}),
+            html.Label('Bottoms composition (xb):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Div([
+                dcc.Slider(id='xb-slider', 
+                           min=0, 
+                           max=1, 
+                           step=0.01, 
+                           value=0.1, 
+                           marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
+                           updatemode='drag')
+            ], style={'margin-bottom': '5px'}),
+            html.Label('Feed composition (xf):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Div([
+                dcc.Slider(id='xf-slider', 
+                           min=0, 
+                           max=1, 
+                           step=0.01, 
+                           value=0.5, 
+                           marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
+                           updatemode='drag')
+            ], style={'margin-bottom': '5px'}),
+            html.Label('Feed quality (q):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Div([
+                dcc.Slider(id='q-slider', 
+                           min=-2, 
+                           max=2, 
+                           step=0.1, 
+                           value=0.5, 
+                           marks={i: str(round(i, 1)) for i in np.arange(-2, 2, 0.5)}, 
+                           updatemode='drag')
+            ], style={'margin-bottom': '5px'}),
+            html.Label('Reflux ratio (R):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Div([
+                dcc.Slider(id='R-slider', 
+                           min=0, 
+                           max=10, 
+                           step=0.1, 
+                           value=2, 
+                           marks={i: str(round(i, 1)) for i in np.arange(0, 10, 0.5)}, 
+                           updatemode='drag')
+            ], style={'margin-bottom': '5px'}),
+        ], style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top', 'padding': '10px'}),
+        html.Div([
+            dcc.Graph(id='mccabe-plot', figure=fig),
+            html.Div(id='stages-output', style={'margin-top': '20px'}, children=f"Number of stages: {stages}"),
+            html.Div(id='feed-stages-output', style={'margin-top': '20px'}, children=f"Feed stage: {feedstage}"),
+        ], style={'width': '60%', 'display': 'inline-block', 'vertical-align': 'top', 'padding': '10px'}),
+    ], style={'display': 'flex'}),
     dcc.Store(id='xi-store', data=xi), # the data here is the initial value and will be changed by the slider
     dcc.Store(id='yi-store', data=yi),
 ])
@@ -203,13 +220,26 @@ layout = html.Div([
     Output('confirm-dialog', 'message'),
     Output('xi-store', 'data'),
     Output('yi-store', 'data'),
+    Output('mccabe-plot', 'figure'),
     Input('submit-button', 'n_clicks'),
     State('comp1-input', 'value'),
     State('comp2-input', 'value'),
     State('temperature-input', 'value'),
     State('pressure-input', 'value'),
+    prevent_initial_call=True
 )
 def compute_xy(n_clicks, comp1, comp2, T, P):
+    # Perform computations and update the figure
+    fig = go.Figure()
+    
+    # Update the layout of the figure with the new title
+    fig.update_layout(
+        title=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
+        xaxis_title=f'Liquid mole fraction {comp1}',
+        yaxis_title=f'Vapor mole fraction {comp1}',
+        xaxis=dict(range=[0, 1], constrain='domain'),
+        yaxis=dict(range=[0, 1], scaleanchor='x', scaleratio=1)
+    )
     if n_clicks > 0:
         if T is not None and P is not None:
             return True, 'If you input both temperature and pressure, the graphing will not work.', dash.no_update, dash.no_update
@@ -221,12 +251,13 @@ def compute_xy(n_clicks, comp1, comp2, T, P):
         else:
             xi, yi = xy(comp1, comp2, P=P, values=True, show=False)
         
-        return False, '', xi, yi
-    return False, '', dash.no_update, dash.no_update
+        return False, '', xi, yi, fig
+    return False, '', dash.no_update, dash.no_update, fig
 
 @callback(
     Output('mccabe-plot', 'figure', allow_duplicate=True),
     Output('stages-output', 'children'),
+    Output('feed-stages-output', 'children'),
     Input('xd-slider', 'value'),
     Input('xb-slider', 'value'),
     Input('xf-slider', 'value'),
@@ -240,7 +271,7 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
     comp1 = 'methanol'
     comp2 = 'water'
     T = 300
-    z = np.polyfit(xi, yi, 10)
+    z = np.polyfit(xi, yi, 20)
     p = np.poly1d(z)
 
     patched_figure = Patch()
@@ -386,6 +417,6 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
         }
     ])
 
-    return patched_figure, f"Number of stages: {stages}"
+    return patched_figure, f"Number of stages: {stages}", f"Feed stage: {feedstage}"
 
 # %%

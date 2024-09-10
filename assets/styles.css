@@ -1,0 +1,55 @@
+/* styles.css */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap');
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #010131; /* Dark blue color */
+    color: white; /* Ensure text is white */
+    font-family: 'Merriweather', serif; /* Merriweather font */
+}
+
+.bg-dark-blue {
+    background-color: #010131; /* Dark blue color */
+    color: white; /* Ensure text is white */
+}
+
+.bg-blue {
+    background-color: #0000FF; /* Blue color */
+    color: white; /* Ensure text is white */
+}
+
+.text-white {
+    color: #ffffff; /* Dark blue color */
+}
+
+.navbar {
+    display: flex;
+    justify-content: center;
+    padding: 14px 16px;
+}
+
+.nav-link {
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.fw-bold {
+    font-weight: bold;
+}
+
+.fs-1 {
+    font-size: 2rem;
+}
