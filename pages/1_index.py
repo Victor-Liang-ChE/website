@@ -33,10 +33,10 @@ layout = html.Div([
     html.Div([html.P(sentence) for sentence in sentences]),
     html.Div([
         html.A(href="https://github.com/Victor-Liang-ChE", children=[
-            html.Img(src=github_logo_url, style={'height': '30px', 'margin-right': '10px'})
+            html.Img(src=github_logo_url, className="logo", style={'height': '30px', 'margin-right': '10px'})
         ]),
         html.A(href="https://www.linkedin.com/in/victor-liang-567238231", children=[
-            html.Img(src=linkedin_logo_url, style={'height': '30px'})
+            html.Img(src=linkedin_logo_url, className="logo", style={'height': '30px'})
         ])
     ], style={'margin-top': '20px'})
 ], style={'margin': '20px'})

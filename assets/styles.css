@@ -35,11 +35,11 @@ html, body {
     text-align: center;
     padding: 14px 16px;
     text-decoration: none;
+    transition: transform 0.3s ease;
 }
 
 .nav-link:hover {
-    background-color: #ddd;
-    color: black;
+    transform: scale(1.1);
 }
 
 .text-center {
@@ -52,4 +52,12 @@ html, body {
 
 .fs-1 {
     font-size: 2rem;
+}
+
+.logo {
+    transition: transform 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.2);
 }
