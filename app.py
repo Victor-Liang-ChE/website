@@ -10,6 +10,8 @@ external_css = ["/assets/styles.css"]
 
 app = Dash(__name__, pages_folder='pages', use_pages=True, external_stylesheets=external_css)
 
+navbar_pages = ['About', 'McCabe-Thiele Interactive Plot', 'Kinetics Graph', 'Miscellaneous']
+
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Br(),
@@ -17,7 +19,7 @@ app.layout = html.Div([
     html.Nav([
         html.Div([
             dcc.Link(page['name'], href=page["relative_path"], className="nav-link text-white")
-            for page in dash.page_registry.values()
+            for page in dash.page_registry.values() if page['name'] in navbar_pages
         ], className="navbar bg-blue")
     ]),
     dash.page_container
@@ -32,8 +34,14 @@ def update_title(pathname):
         return 'Victor Liang'
     elif pathname == '/mccabe':
         return 'McCabe-Thiele Interactive Plot'
-    elif pathname == '/page2':
-        return 'Page 2 Title'
+    elif pathname == '/kinetics':
+        return 'Kinetics'
+    elif pathname == '/dropchance':
+        return 'Drop Chance Calculator'
+    elif pathname == '/emailgen':
+        return 'Email Generator'
+    elif pathname == '/robin':
+        return 'Robinhood Autoseller'
     else:
         return 'My Website'
 

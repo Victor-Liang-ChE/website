@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 import dash
 from scipy.optimize import fsolve
-from dash import dcc, html, Input, Output, callback, Patch, State
+from dash import dcc, html, Input, Output, callback, Patch, State, callback_context
 from TxyPxyxy import xy
 
 dash.register_page(__name__, path='/mccabe', name="McCabe-Thiele Interactive Plot")
@@ -131,30 +131,70 @@ fig.add_trace(go.Scatter(x=xstripvertsegmentlist, y=ystripvertsegmentlist, mode=
 
 fig.add_trace(go.Scatter(x=[xd, xb, xf], y=[xd, xb, xf], mode='markers', marker=dict(color='red'), uid='markers'))
 
-fig.update_layout(title=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
-                xaxis_title=f'Liquid mole fraction {comp1}',
-                yaxis_title=f'Vapor mole fraction {comp1}',
-                xaxis=dict(range=[0, 1], constrain='domain'),
-                yaxis=dict(range=[0, 1], scaleanchor='x', scaleratio=1))
+fig.update_layout(
+    title=dict(
+        text=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
+        x=0.5,  # Center the title
+        xanchor='center',
+        font=dict(color='white', family='Merriweather')  # Set title text color to white and font to Merriweather
+    ),
+    xaxis=dict(
+        title=f'Liquid mole fraction {comp1}',
+        range=[0, 1],
+        constrain='domain',
+        title_font=dict(size=18, color='white', family='Merriweather'),  # Increase x-axis title font size, set color to white, and font to Merriweather
+        showgrid=False,  # Remove x-axis grid
+        ticks='outside',  # Add tick marks
+        ticklen=5,  # Length of tick marks
+        tickwidth=2,  # Width of tick marks
+        tickcolor='white',  # Color of tick marks
+        tickfont=dict(color='white', family='Merriweather')  # Set x-axis tick labels color to white and font to Merriweather
+    ),
+    yaxis=dict(
+        title=f'Vapor mole fraction {comp1}',
+        range=[0, 1],
+        scaleanchor='x',
+        scaleratio=1,
+        title_font=dict(size=18, color='white', family='Merriweather'),  # Increase y-axis title font size, set color to white, and font to Merriweather
+        showgrid=False,  # Remove y-axis grid
+        ticks='outside',  # Add tick marks
+        ticklen=5,  # Length of tick marks
+        tickwidth=2,  # Width of tick marks
+        tickcolor='white',  # Color of tick marks
+        tickfont=dict(color='white', family='Merriweather')  # Set y-axis tick labels color to white and font to Merriweather
+    ),
+    legend=dict(
+        x=0.75,  # Position legend inside the graph
+        y=0.1,
+        xanchor='left',
+        yanchor='bottom',
+        font=dict(color='white', family='Merriweather')  # Set legend text color to white and font to Merriweather
+    ),
+    margin=dict(l=10, r=10, t=40, b=10),  # Reduce margins to remove whitespace
+    plot_bgcolor='#010131',  # Set plot background color to dark blue from CSS
+    paper_bgcolor='#010131'  # Set paper background color to dark blue from CSS
+)
 
-##################LAYOUT##################
 layout = html.Div([
     html.Div([
         html.Div([
-            html.Label('Component 1:', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Component 1:', style={'display': 'inline-block', 'margin-right': '10px'}),
             dcc.Input(id='comp1-input', type='text', value='methanol', style={'width': '100%', 'margin-bottom': '10px'}),
-            html.Label('Component 2:', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Component 2:', style={'display': 'inline-block', 'margin-right': '10px'}),
             dcc.Input(id='comp2-input', type='text', value='water', style={'width': '100%', 'margin-bottom': '10px'}),
-            html.Label('Temperature (K):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Temperature (K):', style={'display': 'inline-block', 'margin-right': '10px'}),
             dcc.Input(id='temperature-input', type='number', value=300, style={'width': '100%', 'margin-bottom': '10px'}),
-            html.Label('Pressure (Pa):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Pressure (Pa):', style={'display': 'inline-block', 'margin-right': '10px'}),
             dcc.Input(id='pressure-input', type='number', style={'width': '100%', 'margin-bottom': '10px'}),
-            html.Button('Submit', id='submit-button', n_clicks=0, style={'margin-bottom': '10px'}),
-            dcc.ConfirmDialog(
-                id='confirm-dialog',
-                message='',
-            ),
-            html.Label('Distillate composition (xd):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Div([
+                html.Button('Submit', id='submit-button', n_clicks=0, style={'margin-bottom': '10px'}),
+                dcc.ConfirmDialog(
+                    id='confirm-dialog',
+                    message='',
+                ),
+            ], style={'margin-bottom': '10px'}),
+            html.Label('Distillate composition (xd):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Span(id='xd-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='xd-slider', 
                            min=0, 
@@ -164,7 +204,8 @@ layout = html.Div([
                            marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
                            updatemode='drag')
             ], style={'margin-bottom': '5px'}),
-            html.Label('Bottoms composition (xb):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Bottoms composition (xb):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Span(id='xb-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='xb-slider', 
                            min=0, 
@@ -174,7 +215,8 @@ layout = html.Div([
                            marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
                            updatemode='drag')
             ], style={'margin-bottom': '5px'}),
-            html.Label('Feed composition (xf):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Feed composition (xf):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Span(id='xf-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='xf-slider', 
                            min=0, 
@@ -184,7 +226,8 @@ layout = html.Div([
                            marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
                            updatemode='drag')
             ], style={'margin-bottom': '5px'}),
-            html.Label('Feed quality (q):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Feed quality (q):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Span(id='q-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='q-slider', 
                            min=-2, 
@@ -194,7 +237,8 @@ layout = html.Div([
                            marks={i: str(round(i, 1)) for i in np.arange(-2, 2, 0.5)}, 
                            updatemode='drag')
             ], style={'margin-bottom': '5px'}),
-            html.Label('Reflux ratio (R):', style={'display': 'block', 'margin-bottom': '10px'}),
+            html.Label('Reflux ratio (R):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Span(id='R-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='R-slider', 
                            min=0, 
@@ -419,4 +463,51 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
 
     return patched_figure, f"Number of stages: {stages}", f"Feed stage: {feedstage}"
 
-# %%
+@callback(
+    Output('xd-display', 'children'),
+    Output('xb-display', 'children'),
+    Output('xf-display', 'children'),
+    Output('q-display', 'children'),
+    Output('R-display', 'children'),
+    Input('xd-slider', 'value'),
+    Input('xb-slider', 'value'),
+    Input('xf-slider', 'value'),
+    Input('q-slider', 'value'),
+    Input('R-slider', 'value')
+)
+def update_slider_values(xd, xb, xf, q, R):
+    xd_display = f'{xd:.2f}'
+    xb_display = f'{xb:.2f}'
+    xf_display = f'{xf:.2f}'
+    q_display = f'{q:.1f}'
+    R_display = f'{R:.1f}'
+    return xd_display, xb_display, xf_display, q_display, R_display
+
+@callback(
+    Output('xd-slider', 'value'),
+    Output('xf-slider', 'value'),
+    Output('xb-slider', 'value'),
+    Input('xd-slider', 'value'),
+    Input('xf-slider', 'value'),
+    Input('xb-slider', 'value')
+)
+def enforce_constraints(xd, xf, xb):
+    ctx = callback_context
+    if not ctx.triggered:
+        return xd, xf, xb
+
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggered_id == 'xd-slider':
+        if xd < xf:
+            xd = xf + 0.01
+    elif triggered_id == 'xf-slider':
+        if xf > xd:
+            xf = xd - 0.01
+        if xf < xb:
+            xf = xb + 0.01
+    elif triggered_id == 'xb-slider':
+        if xb > xf:
+            xb = xf - 0.01
+
+    return xd, xf, xb
