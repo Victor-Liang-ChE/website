@@ -35,7 +35,7 @@ z = np.polyfit(xi, yi, 20)
 p = np.poly1d(z)
 
 fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='blue'), uid='equilibrium'))
-fig.add_trace(go.Scatter(x=xi, y=xi, mode='lines', name='y=x Line', line=dict(color='black'), uid='yx'))
+fig.add_trace(go.Scatter(x=xi, y=xi, mode='lines', name='y=x Line', line=dict(color='white'), uid='yx'))
 
 if q is not None and R is not None:
     def rectifying(xval):
@@ -125,9 +125,9 @@ yrectvertsegmentlist = [y for sublist in yrectvertsegment for y in sublist]
 xstripvertsegmentlist = [x for sublist in xstripvertsegment for x in sublist]
 ystripvertsegmentlist = [y for sublist in ystripvertsegment for y in sublist]
 
-fig.add_trace(go.Scatter(x=xhorzsegmentlist, y=yhorzsegmentlist, mode='lines', line=dict(color='black'), uid='horzsegment', showlegend=False))
-fig.add_trace(go.Scatter(x=xrectvertsegmentlist, y=yrectvertsegmentlist, mode='lines', line=dict(color='black'), uid='rectvertsegment', showlegend=False))
-fig.add_trace(go.Scatter(x=xstripvertsegmentlist, y=ystripvertsegmentlist, mode='lines', line=dict(color='black'), uid='stripvertsegment', showlegend=False))
+fig.add_trace(go.Scatter(x=xhorzsegmentlist, y=yhorzsegmentlist, mode='lines', line=dict(color='white'), uid='horzsegment', showlegend=False))
+fig.add_trace(go.Scatter(x=xrectvertsegmentlist, y=yrectvertsegmentlist, mode='lines', line=dict(color='white'), uid='rectvertsegment', showlegend=False))
+fig.add_trace(go.Scatter(x=xstripvertsegmentlist, y=ystripvertsegmentlist, mode='lines', line=dict(color='white'), uid='stripvertsegment', showlegend=False))
 
 fig.add_trace(go.Scatter(x=[xd, xb, xf], y=[xd, xb, xf], mode='markers', marker=dict(color='red'), uid='markers'))
 
@@ -323,7 +323,7 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
 
     patched_figure['data'].extend([
         {'name': 'Equilibrium Line', 'x': xi, 'y': p(xi), 'mode': 'lines', 'line': {'color': 'blue'}},
-        {'name': 'y=x Line', 'x': xi, 'y': xi, 'mode': 'lines', 'line': {'color': 'black'}}
+        {'name': 'y=x Line', 'x': xi, 'y': xi, 'mode': 'lines', 'line': {'color': 'white'}}
     ])
 
     if q is not None and R is not None:
@@ -440,7 +440,7 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
             'x': xhorzsegmentlist,
             'y': yhorzsegmentlist,
             'mode': 'lines',
-            'line': {'color': 'black'},
+            'line': {'color': 'white'},
             'showlegend': False
         },
         {
@@ -448,7 +448,7 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
             'x': xrectvertsegmentlist,
             'y': yrectvertsegmentlist,
             'mode': 'lines',
-            'line': {'color': 'black'},
+            'line': {'color': 'white'},
             'showlegend': False
         },
         {
@@ -456,7 +456,7 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
             'x': xstripvertsegmentlist,
             'y': ystripvertsegmentlist,
             'mode': 'lines',
-            'line': {'color': 'black'},
+            'line': {'color': 'white'},
             'showlegend': False
         }
     ])
