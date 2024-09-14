@@ -34,7 +34,7 @@ xi, yi = xy(comp1, comp2, T=T, values=True, show=False) # this function lags the
 z = np.polyfit(xi, yi, 20)
 p = np.poly1d(z)
 
-fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='blue'), uid='equilibrium'))
+fig.add_trace(go.Scatter(x=xi, y=p(xi), mode='lines', name='Equilibrium Line', line=dict(color='yellow'), uid='equilibrium'))
 fig.add_trace(go.Scatter(x=xi, y=xi, mode='lines', name='y=x Line', line=dict(color='white'), uid='yx'))
 
 if q is not None and R is not None:
@@ -148,7 +148,8 @@ fig.update_layout(
         ticklen=5,  # Length of tick marks
         tickwidth=2,  # Width of tick marks
         tickcolor='white',  # Color of tick marks
-        tickfont=dict(color='white', family='Merriweather')  # Set x-axis tick labels color to white and font to Merriweather
+        tickfont=dict(size=14, color='white', family='Merriweather'),  # Set x-axis tick labels size, color to white, and font to Merriweather
+        dtick=0.1  # Set tick increment to 0.1
     ),
     yaxis=dict(
         title=f'Vapor mole fraction {comp1}',
@@ -161,7 +162,8 @@ fig.update_layout(
         ticklen=5,  # Length of tick marks
         tickwidth=2,  # Width of tick marks
         tickcolor='white',  # Color of tick marks
-        tickfont=dict(color='white', family='Merriweather')  # Set y-axis tick labels color to white and font to Merriweather
+        tickfont=dict(size=14, color='white', family='Merriweather'),  # Set y-axis tick labels size, color to white, and font to Merriweather
+        dtick=0.1  # Set tick increment to 0.1
     ),
     legend=dict(
         x=0.75,  # Position legend inside the graph
@@ -273,18 +275,44 @@ layout = html.Div([
     prevent_initial_call=True
 )
 def compute_xy(n_clicks, comp1, comp2, T, P):
-    # Perform computations and update the figure
     fig = go.Figure()
-    
-    # Update the layout of the figure with the new title
-    fig.update_layout(
-        title=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
-        xaxis_title=f'Liquid mole fraction {comp1}',
-        yaxis_title=f'Vapor mole fraction {comp1}',
-        xaxis=dict(range=[0, 1], constrain='domain'),
-        yaxis=dict(range=[0, 1], scaleanchor='x', scaleratio=1)
-    )
     if n_clicks > 0:
+        # Update the layout of the figure with the new title
+        if T is not None:
+            figtitle = f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K"
+        else:
+            figtitle = f"McCabe-Thiele Method for {comp1} + {comp2} at {P} Pa"
+        fig.update_layout(
+            title=figtitle,
+            xaxis_title=f'Liquid mole fraction {comp1}',
+            yaxis_title=f'Vapor mole fraction {comp1}',
+        xaxis=dict(
+            title=f'Liquid mole fraction {comp1}',
+            range=[0, 1],
+            constrain='domain',
+            title_font=dict(size=18, color='white', family='Merriweather'),  # Increase x-axis title font size, set color to white, and font to Merriweather
+            showgrid=False,  # Remove x-axis grid
+            ticks='outside',  # Add tick marks
+            ticklen=5,  # Length of tick marks
+            tickwidth=2,  # Width of tick marks
+            tickcolor='white',  # Color of tick marks
+            tickfont=dict(size=14, color='white', family='Merriweather'),  # Set x-axis tick labels size, color to white, and font to Merriweather
+            dtick=0.1  # Set tick increment to 0.1
+        ),
+        yaxis=dict(
+            title=f'Vapor mole fraction {comp1}',
+            range=[0, 1],
+            scaleanchor='x',
+            scaleratio=1,
+            title_font=dict(size=18, color='white', family='Merriweather'),  # Increase y-axis title font size, set color to white, and font to Merriweather
+            showgrid=False,  # Remove y-axis grid
+            ticks='outside',  # Add tick marks
+            ticklen=5,  # Length of tick marks
+            tickwidth=2,  # Width of tick marks
+            tickcolor='white',  # Color of tick marks
+            tickfont=dict(size=14, color='white', family='Merriweather'),  # Set y-axis tick labels size, color to white, and font to Merriweather
+            dtick=0.1  # Set tick increment to 0.1
+        ))
         if T is not None and P is not None:
             return True, 'If you input both temperature and pressure, the graphing will not work.', dash.no_update, dash.no_update
         if not comp1 or not comp2 or (T is None and P is None):
@@ -309,12 +337,13 @@ def compute_xy(n_clicks, comp1, comp2, T, P):
     Input('R-slider', 'value'), # add inputs from text boxes for components?
     Input('xi-store', 'data'),
     Input('yi-store', 'data'),
+    State('comp1-input', 'value'),
+    State('comp2-input', 'value'),
+    State('temperature-input', 'value'),
+    State('pressure-input', 'value'),
     prevent_initial_call=True
 )
-def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
-    comp1 = 'methanol'
-    comp2 = 'water'
-    T = 300
+def update_plot(xd, xb, xf, q, R, xi, yi, comp1, comp2, T, P): # use Patch to update the plot
     z = np.polyfit(xi, yi, 20)
     p = np.poly1d(z)
 
@@ -322,7 +351,7 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
     patched_figure['data'] = []
 
     patched_figure['data'].extend([
-        {'name': 'Equilibrium Line', 'x': xi, 'y': p(xi), 'mode': 'lines', 'line': {'color': 'blue'}},
+        {'name': 'Equilibrium Line', 'x': xi, 'y': p(xi), 'mode': 'lines', 'line': {'color': 'yellow'}},
         {'name': 'y=x Line', 'x': xi, 'y': xi, 'mode': 'lines', 'line': {'color': 'white'}}
     ])
 
@@ -460,6 +489,28 @@ def update_plot(xd, xb, xf, q, R, xi, yi): # use Patch to update the plot
             'showlegend': False
         }
     ])
+    if T is not None:
+        figtitle = f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K"
+    else:
+        figtitle = f"McCabe-Thiele Method for {comp1} + {comp2} at {P} Pa"
+    patched_figure['layout'].update(
+        title=dict(
+            text=figtitle,
+            x=0.5,  # Center the title
+            xanchor='center',
+            font=dict(color='white', family='Merriweather')  # Set title text color to white and font to Merriweather
+        ),
+        legend=dict(
+            x=0.75,  # Position legend inside the graph
+            y=0.1,
+            xanchor='left',
+            yanchor='bottom',
+            font=dict(color='white', family='Merriweather')  # Set legend text color to white and font to Merriweather
+        ),
+        margin=dict(l=10, r=10, t=40, b=10),  # Reduce margins to remove whitespace
+        plot_bgcolor='#010131',  # Set plot background color to dark blue from CSS
+        paper_bgcolor='#010131'  # Set paper background color to dark blue from CSS
+    )
 
     return patched_figure, f"Number of stages: {stages}", f"Feed stage: {feedstage}"
 
