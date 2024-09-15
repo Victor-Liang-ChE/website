@@ -259,6 +259,7 @@ layout = html.Div([
     ], style={'display': 'flex'}),
     dcc.Store(id='xi-store', data=xi), # the data here is the initial value and will be changed by the slider
     dcc.Store(id='yi-store', data=yi),
+    dcc.Store(id='z-store', data=z),
 ])
 
 @callback(
@@ -266,6 +267,7 @@ layout = html.Div([
     Output('confirm-dialog', 'message'),
     Output('xi-store', 'data'),
     Output('yi-store', 'data'),
+    Output('z-store', 'data'),
     Output('mccabe-plot', 'figure'),
     Input('submit-button', 'n_clicks'),
     State('comp1-input', 'value'),
@@ -322,9 +324,10 @@ def compute_xy(n_clicks, comp1, comp2, T, P):
             xi, yi = xy(comp1, comp2, T=T, values=True, show=False)
         else:
             xi, yi = xy(comp1, comp2, P=P, values=True, show=False)
+        z = np.polyfit(xi, yi, 20)
         
-        return False, '', xi, yi, fig
-    return False, '', dash.no_update, dash.no_update, fig
+        return False, '', xi, yi, z, fig
+    return False, '', dash.no_update, dash.no_update, z, fig
 
 @callback(
     Output('mccabe-plot', 'figure', allow_duplicate=True),
@@ -337,14 +340,14 @@ def compute_xy(n_clicks, comp1, comp2, T, P):
     Input('R-slider', 'value'), # add inputs from text boxes for components?
     Input('xi-store', 'data'),
     Input('yi-store', 'data'),
+    Input('z-store', 'data'),
     State('comp1-input', 'value'),
     State('comp2-input', 'value'),
     State('temperature-input', 'value'),
     State('pressure-input', 'value'),
     prevent_initial_call=True
 )
-def update_plot(xd, xb, xf, q, R, xi, yi, comp1, comp2, T, P): # use Patch to update the plot
-    z = np.polyfit(xi, yi, 20)
+def update_plot(xd, xb, xf, q, R, xi, yi, z, comp1, comp2, T, P): # use Patch to update the plot
     p = np.poly1d(z)
 
     patched_figure = Patch()
