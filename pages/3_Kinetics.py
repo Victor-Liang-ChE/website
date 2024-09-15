@@ -162,12 +162,20 @@ def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
     Output('concentration-inputs', 'children'),
     Input({'type': 'confirm-reaction', 'index': dash.ALL}, 'n_clicks'),
     State({'type': 'reaction-input', 'index': dash.ALL}, 'value'),
-    State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value')
+    State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value'),
+    prevent_initial_call=True
 )
 def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants):
-    if any(n_clicks) and all(reactions) and all(rate_constants):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update
+
+    if any(n_clicks) and any(reactions):
+        # Filter out empty reaction inputs
+        valid_reactions = [r for r in reactions if r]
+        
         # Detect unique species
-        unique_species = detect_unique_species_ordered(reactions)
+        unique_species = detect_unique_species_ordered(valid_reactions)
         
         # Create input fields for initial concentrations
         concentration_inputs = []
@@ -180,7 +188,7 @@ def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants)
             )
         
         return concentration_inputs
-    return []
+    return dash.no_update
 
 @callback(
     Output('kinetics-graph', 'figure'),
