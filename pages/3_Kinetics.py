@@ -1,13 +1,33 @@
 from dash import dcc, html, Input, Output, State, callback
 import dash
 import dash_bootstrap_components as dbc
-import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from scipy.integrate import solve_ivp
 import re
 
 dash.register_page(__name__, path='/kinetics', name="Kinetics Graph")
+
+# Function to detect unique species in the order they appear
+def detect_unique_species_ordered(reactions):
+    ordered_species = []
+    unique_species = set()
+    
+    for reaction in reactions:
+        # Split the reaction into reactants and products
+        reactants, products = reaction.split('->')
+        
+        # Extract species from reactants and products
+        reactant_species = [re.sub(r'^\d*\*?', '', species.strip()) for species in reactants.split('+')]
+        product_species = [re.sub(r'^\d*\*?', '', species.strip()) for species in products.split('+')]
+        
+        # Add species to the ordered list if they are not already in the set
+        for species in reactant_species + product_species:
+            if species not in unique_species:
+                unique_species.add(species)
+                ordered_species.append(species)
+    
+    return ordered_species
 
 # Function to generate the reaction graph
 def reactiongraphing(reactions, ks, C0):
@@ -20,20 +40,11 @@ def reactiongraphing(reactions, ks, C0):
         return re.sub(r'^\d*\*?', '', species)
 
     # Extract unique species from reactions in the order they appear
-    ordered_species = []
-    unique_species = set()
-    for reaction in reactions:
-        reactants, products = reaction.split('=')
-        reactant_species = [remove_coefficients(species) for species in reactants.split('+')]
-        product_species = [remove_coefficients(species) for species in products.split('+')]
-        for species in reactant_species + product_species:
-            if species not in unique_species:
-                unique_species.add(species)
-                ordered_species.append(species)
+    ordered_species = detect_unique_species_ordered(reactions)
 
     # Check that all unique species are present in C0
-    if not unique_species.issubset(C0.keys()):
-        missing_species = unique_species - set(C0.keys())
+    if not set(ordered_species).issubset(C0.keys()):
+        missing_species = set(ordered_species) - set(C0.keys())
         raise ValueError(f"The following species are missing in C0: {missing_species}")
 
     # Define the system of ODEs
@@ -41,7 +52,7 @@ def reactiongraphing(reactions, ks, C0):
         dydt = np.zeros(len(ordered_species))
         concentrations = {species: y[i] for i, species in enumerate(ordered_species)}
         for i, reaction in enumerate(reactions):
-            reactants, products = reaction.split('=')
+            reactants, products = reaction.split('->')
             reactant_species = []
             for species in reactants.split('+'):
                 coeff, sp = re.match(r'(\d*)(\w+)', species).groups()
@@ -89,8 +100,8 @@ def reactiongraphing(reactions, ks, C0):
         title='Concentration vs. Time',
         xaxis_title='Time',
         yaxis_title='Concentration',
-        xaxis=dict(range=[0, steady_state_time]),
-        yaxis=dict(range=[0, max(max(solution.y))]),
+        xaxis=dict(range=[0, steady_state_time], gridcolor='rgba(0,0,0,0)'),
+        yaxis=dict(range=[0, max(max(solution.y))], gridcolor='rgba(0,0,0,0)'),
         template='plotly_dark'
     )
 
@@ -98,52 +109,93 @@ def reactiongraphing(reactions, ks, C0):
 
 # Layout of the page
 layout = html.Div([
-    html.H1("Kinetics Graph"),
+    html.Div(id='reaction-inputs', children=[
+        dbc.InputGroup([
+            dbc.InputGroupText("Reaction:", style={'margin-left': '2px'}),
+            dbc.Input(id='reaction-input-0', placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
+            dbc.InputGroupText("Rate Constant:"),
+            dbc.Input(id='rate-constant-input-0', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'}),
+            dbc.Button("Confirm Reaction", id='confirm-reaction', n_clicks=0)
+        ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '10px'})
+    ], style={'margin-bottom': '10px'}),
     html.Div([
-        dbc.InputGroup([
-            dbc.InputGroupText("Reaction"),
-            dbc.Input(id='reaction-input', placeholder='e.g., 2H2+O2=2H2O', type='text'),
-            dbc.Button("Add Reaction", id='add-reaction', n_clicks=0)
-        ]),
-        html.Div(id='reaction-list', children=[]),
-        dbc.InputGroup([
-            dbc.InputGroupText("Rate Constants"),
-            dbc.Input(id='rate-constants', placeholder='e.g., 1.5, 0.5', type='text')
-        ]),
-        dbc.InputGroup([
-            dbc.InputGroupText("Initial Concentrations"),
-            dbc.Input(id='initial-concentrations', placeholder='e.g., H2:1, O2:1, H2O:0', type='text')
-        ]),
-        dbc.Button("Submit", id='submit-button', n_clicks=0)
-    ]),
+        dbc.Button("Add Reaction", id='add-reaction', n_clicks=0, style={'margin-right': '10px'}),
+        dbc.Button("Remove Reaction", id='remove-reaction', n_clicks=0)
+    ], style={'margin-bottom': '10px'}),
+    html.Div(id='species-list', children=[]),
+    html.Div(id='concentration-inputs', children=[], style={'margin-bottom': '0px'}),
+    dbc.Button("Submit", id='submit-button', n_clicks=0),
     dcc.Graph(id='kinetics-graph')
-])
+], style={'margin-left': '10px', 'margin-top': '10px'})
 
 # Callbacks to handle input and generate the graph
 @callback(
-    Output('reaction-list', 'children'),
+    Output('reaction-inputs', 'children'),
     Input('add-reaction', 'n_clicks'),
-    State('reaction-input', 'value'),
-    State('reaction-list', 'children')
+    Input('remove-reaction', 'n_clicks'),
+    State('reaction-inputs', 'children')
 )
-def update_reaction_list(n_clicks, reaction, reaction_list):
-    if n_clicks > 0 and reaction:
-        reaction_list.append(html.Div(reaction))
-    return reaction_list
+def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        return reaction_inputs
+
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if button_id == 'add-reaction' and add_clicks > 0:
+        new_reaction_input = dbc.InputGroup([
+            dbc.InputGroupText("Reaction:", style={'margin-left': '2px'}),
+            dbc.Input(id={'type': 'reaction-input', 'index': add_clicks}, placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
+            dbc.InputGroupText("Rate Constant:"),
+            dbc.Input(id={'type': 'rate-constant-input', 'index': add_clicks}, type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'}),
+            dbc.Button("Confirm Reaction", id={'type': 'confirm-reaction', 'index': add_clicks}, n_clicks=0)
+        ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '5px'})
+        reaction_inputs.append(new_reaction_input)
+
+    if button_id == 'remove-reaction' and remove_clicks > 0 and len(reaction_inputs) > 1:
+        reaction_inputs.pop()
+
+    return reaction_inputs
+
+@callback(
+    Output('concentration-inputs', 'children'),
+    Input({'type': 'confirm-reaction', 'index': dash.ALL}, 'n_clicks'),
+    State({'type': 'reaction-input', 'index': dash.ALL}, 'value'),
+    State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value')
+)
+def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants):
+    if any(n_clicks) and all(reactions) and all(rate_constants):
+        # Detect unique species
+        unique_species = detect_unique_species_ordered(reactions)
+        
+        # Create input fields for initial concentrations
+        concentration_inputs = []
+        for species in unique_species:
+            concentration_inputs.append(
+                dbc.InputGroup([
+                    dbc.InputGroupText(f"Initial Concentration of {species}"),
+                    dbc.Input(id={'type': 'concentration-input', 'index': species}, placeholder=f'e.g., 1.0', type='text'),
+                ], style={'margin-bottom': '10px'})
+            )
+        
+        return concentration_inputs
+    return []
 
 @callback(
     Output('kinetics-graph', 'figure'),
     Input('submit-button', 'n_clicks'),
-    State('reaction-list', 'children'),
-    State('rate-constants', 'value'),
-    State('initial-concentrations', 'value')
+    State({'type': 'reaction-input', 'index': dash.ALL}, 'value'),
+    State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value'),
+    State({'type': 'concentration-input', 'index': dash.ALL}, 'value')
 )
-def generate_graph(n_clicks, reaction_list, rate_constants, initial_concentrations):
-    if n_clicks > 0:
-        reactions = [reaction.children for reaction in reaction_list]
-        ks = list(map(float, rate_constants.split(',')))
-        C0 = dict(item.split(':') for item in initial_concentrations.split(','))
-        C0 = {k: float(v) for k, v in C0.items()}
+def generate_graph(n_clicks, reactions, rate_constants, concentrations):
+    if n_clicks > 0 and all(reactions) and all(rate_constants) and all(concentrations):
+        ks = list(map(float, rate_constants))
+        
+        # Convert concentrations list to a dictionary
+        C0 = {species['index']: float(concentration) for species, concentration in zip(concentrations, concentrations)}
+        
         fig = reactiongraphing(reactions, ks, C0)
         return fig
     return go.Figure()
