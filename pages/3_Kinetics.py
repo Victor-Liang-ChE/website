@@ -101,7 +101,7 @@ def reactiongraphing(reactions, ks, C0):
         xaxis_title='Time',
         yaxis_title='Concentration',
         xaxis=dict(range=[0, steady_state_time], gridcolor='rgba(0,0,0,0)'),
-        yaxis=dict(range=[0, max(max(solution.y))], gridcolor='rgba(0,0,0,0)'),
+        yaxis=dict(range=[0, np.max(solution.y)], gridcolor='rgba(0,0,0,0)'),  # Fixed the ambiguous truth value error
         template='plotly_dark'
     )
 
@@ -112,19 +112,19 @@ layout = html.Div([
     html.Div(id='reaction-inputs', children=[
         dbc.InputGroup([
             dbc.InputGroupText("Reaction:", style={'margin-left': '2px'}),
-            dbc.Input(id='reaction-input-0', placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
+            dbc.Input(id={'type': 'reaction-input', 'index': 0}, placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
             dbc.InputGroupText("Rate Constant:"),
-            dbc.Input(id='rate-constant-input-0', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'}),
-            dbc.Button("Confirm Reaction", id='confirm-reaction', n_clicks=0)
+            dbc.Input(id={'type': 'rate-constant-input', 'index': 0}, type='number', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'})
         ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '10px'})
     ], style={'margin-bottom': '10px'}),
     html.Div([
         dbc.Button("Add Reaction", id='add-reaction', n_clicks=0, style={'margin-right': '10px'}),
         dbc.Button("Remove Reaction", id='remove-reaction', n_clicks=0)
     ], style={'margin-bottom': '10px'}),
-    html.Div(id='species-list', children=[]),
+    html.Div(id='species-list', children=[]),  # Updated to display species
     html.Div(id='concentration-inputs', children=[], style={'margin-bottom': '0px'}),
-    dbc.Button("Submit", id='submit-button', n_clicks=0),
+    dbc.Button("Confirm Reaction", id='confirm-reaction', n_clicks=0),
+    dbc.Button("Submit", id='submit-button', n_clicks=0, style={'display': 'none'}),
     dcc.Graph(id='kinetics-graph')
 ], style={'margin-left': '10px', 'margin-top': '10px'})
 
@@ -148,8 +148,7 @@ def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
             dbc.InputGroupText("Reaction:", style={'margin-left': '2px'}),
             dbc.Input(id={'type': 'reaction-input', 'index': add_clicks}, placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
             dbc.InputGroupText("Rate Constant:"),
-            dbc.Input(id={'type': 'rate-constant-input', 'index': add_clicks}, type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'}),
-            dbc.Button("Confirm Reaction", id={'type': 'confirm-reaction', 'index': add_clicks}, n_clicks=0)
+            dbc.Input(id={'type': 'rate-constant-input', 'index': add_clicks}, type='number', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'})
         ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '5px'})
         reaction_inputs.append(new_reaction_input)
 
@@ -160,22 +159,32 @@ def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
 
 @callback(
     Output('concentration-inputs', 'children'),
-    Input({'type': 'confirm-reaction', 'index': dash.ALL}, 'n_clicks'),
+    Output('submit-button', 'style'),
+    Output('species-list', 'children'),  # Added output for species list
+    Input('confirm-reaction', 'n_clicks'),
     State({'type': 'reaction-input', 'index': dash.ALL}, 'value'),
     State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value'),
     prevent_initial_call=True
 )
 def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants):
+    print("Callback triggered")  # Confirm callback is triggered
+    print(f"n_clicks: {n_clicks}")  # Print n_clicks
+    print(f"Reactions: {reactions}")  # Print reactions
+    print(f"Rate Constants: {rate_constants}")  # Print rate constants
+
     ctx = dash.callback_context
     if not ctx.triggered:
-        return dash.no_update
+        return dash.no_update, {'display': 'none'}, dash.no_update
 
-    if any(n_clicks) and any(reactions):
+    if n_clicks > 0 and any(reactions):
         # Filter out empty reaction inputs
         valid_reactions = [r for r in reactions if r]
         
         # Detect unique species
         unique_species = detect_unique_species_ordered(valid_reactions)
+        
+        # Print unique species for debugging
+        print(f"Unique Species: {unique_species}")
         
         # Create input fields for initial concentrations
         concentration_inputs = []
@@ -187,8 +196,11 @@ def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants)
                 ], style={'margin-bottom': '10px'})
             )
         
-        return concentration_inputs
-    return dash.no_update
+        # Display unique species on the webpage
+        species_list = [html.P(f"Detected Species: {', '.join(unique_species)}")]
+        
+        return concentration_inputs, {'display': 'inline-block'}, species_list
+    return dash.no_update, {'display': 'none'}, dash.no_update
 
 @callback(
     Output('kinetics-graph', 'figure'),
@@ -201,8 +213,11 @@ def generate_graph(n_clicks, reactions, rate_constants, concentrations):
     if n_clicks > 0 and all(reactions) and all(rate_constants) and all(concentrations):
         ks = list(map(float, rate_constants))
         
+        # Print the structure of dash.callback_context.states_list[2]
+        print("States List[2]:", dash.callback_context.states_list[2])
+        
         # Convert concentrations list to a dictionary
-        C0 = {species['index']: float(concentration) for species, concentration in zip(concentrations, concentrations)}
+        C0 = {concentration_id['id']['index']: float(concentration) for concentration_id, concentration in zip(dash.callback_context.states_list[2], concentrations)}
         
         fig = reactiongraphing(reactions, ks, C0)
         return fig
