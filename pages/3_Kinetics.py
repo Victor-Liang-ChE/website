@@ -8,6 +8,10 @@ import re
 
 dash.register_page(__name__, path='/kinetics', name="Kinetics Graph")
 
+def subscript_numbers(species):
+    parts = re.split(r'(\d+)', species)
+    return [html.Span(part) if not part.isdigit() else html.Sub(part) for part in parts]
+
 # Function to detect unique species in the order they appear
 def detect_unique_species_ordered(reactions):
     ordered_species = []
@@ -38,6 +42,10 @@ def reactiongraphing(reactions, ks, C0):
     # Function to remove numerical coefficients from species names
     def remove_coefficients(species):
         return re.sub(r'^\d*\*?', '', species)
+
+    # Function to format species names with subscripted numbers using HTML
+    def format_species(species):
+        return re.sub(r'(\d+)', r'<sub>\1</sub>', species)
 
     # Extract unique species from reactions in the order they appear
     ordered_species = detect_unique_species_ordered(reactions)
@@ -94,7 +102,8 @@ def reactiongraphing(reactions, ks, C0):
     # Create the plotly figure
     fig = go.Figure()
     for i, species in enumerate(ordered_species):
-        fig.add_trace(go.Scatter(x=solution.t, y=solution.y[i], mode='lines', name=species))
+        formatted_species = format_species(species)
+        fig.add_trace(go.Scatter(x=solution.t, y=solution.y[i], mode='lines', name=formatted_species))
 
     fig.update_layout(
         title='Concentration vs. Time',
@@ -102,7 +111,10 @@ def reactiongraphing(reactions, ks, C0):
         yaxis_title='Concentration',
         xaxis=dict(range=[0, steady_state_time], gridcolor='rgba(0,0,0,0)'),
         yaxis=dict(range=[0, np.max(solution.y)], gridcolor='rgba(0,0,0,0)'),  # Fixed the ambiguous truth value error
-        template='plotly_dark'
+        template='plotly_dark',
+        autosize=False,
+        width=600,
+        height=600
     )
 
     return fig
@@ -119,18 +131,22 @@ layout = html.Div([
     ], style={'margin-bottom': '10px'}),
     html.Div([
         dbc.Button("Add Reaction", id='add-reaction', n_clicks=0, style={'margin-right': '10px'}),
-        dbc.Button("Remove Reaction", id='remove-reaction', n_clicks=0)
+        dbc.Button("Remove Reaction", id='remove-reaction', n_clicks=0, style={'margin-right': '10px'}),
+        dbc.Button("Confirm Reaction", id='confirm-reaction', n_clicks=0)
     ], style={'margin-bottom': '10px'}),
     html.Div(id='species-list', children=[]),  # Updated to display species
     html.Div(id='concentration-inputs', children=[], style={'margin-bottom': '0px'}),
-    dbc.Button("Confirm Reaction", id='confirm-reaction', n_clicks=0),
     dbc.Button("Submit", id='submit-button', n_clicks=0, style={'display': 'none'}),
-    dcc.Graph(id='kinetics-graph')
+    html.Div(
+        dcc.Graph(id='kinetics-graph', style={'display': 'none', 'width': '600px', 'height': '600px'}),
+        style={'display': 'flex', 'justify-content': 'center'}  # Center the graph
+    )
 ], style={'margin-left': '10px', 'margin-top': '10px'})
 
 # Callbacks to handle input and generate the graph
 @callback(
     Output('reaction-inputs', 'children'),
+    Output('confirm-reaction', 'children'),  # Added output for button text
     Input('add-reaction', 'n_clicks'),
     Input('remove-reaction', 'n_clicks'),
     State('reaction-inputs', 'children')
@@ -139,7 +155,7 @@ def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
     ctx = dash.callback_context
 
     if not ctx.triggered:
-        return reaction_inputs
+        return reaction_inputs, "Confirm Reaction"
 
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -155,55 +171,62 @@ def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
     if button_id == 'remove-reaction' and remove_clicks > 0 and len(reaction_inputs) > 1:
         reaction_inputs.pop()
 
-    return reaction_inputs
+    # Update button text based on the number of reaction inputs
+    button_text = "Confirm Reaction" if len(reaction_inputs) == 1 else "Confirm Reactions"
+
+    return reaction_inputs, button_text
 
 @callback(
     Output('concentration-inputs', 'children'),
     Output('submit-button', 'style'),
-    Output('species-list', 'children'),  # Added output for species list
+    Output('species-list', 'children'),
     Input('confirm-reaction', 'n_clicks'),
     State({'type': 'reaction-input', 'index': dash.ALL}, 'value'),
     State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value'),
     prevent_initial_call=True
 )
 def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants):
-    print("Callback triggered")  # Confirm callback is triggered
-    print(f"n_clicks: {n_clicks}")  # Print n_clicks
-    print(f"Reactions: {reactions}")  # Print reactions
-    print(f"Rate Constants: {rate_constants}")  # Print rate constants
-
     ctx = dash.callback_context
     if not ctx.triggered:
         return dash.no_update, {'display': 'none'}, dash.no_update
 
     if n_clicks > 0 and any(reactions):
-        # Filter out empty reaction inputs
         valid_reactions = [r for r in reactions if r]
-        
-        # Detect unique species
         unique_species = detect_unique_species_ordered(valid_reactions)
         
-        # Print unique species for debugging
-        print(f"Unique Species: {unique_species}")
+        concentration_inputs = [
+            dbc.Col(
+                html.Span("Initial Concentrations: "),
+                width="auto",
+                style={'display': 'flex', 'alignItems': 'center', 'marginRight': '10px'}
+            )
+        ]
         
-        # Create input fields for initial concentrations
-        concentration_inputs = []
         for species in unique_species:
+            subscripted_species = subscript_numbers(species)
             concentration_inputs.append(
-                dbc.InputGroup([
-                    dbc.InputGroupText(f"Initial Concentration of {species}"),
-                    dbc.Input(id={'type': 'concentration-input', 'index': species}, placeholder=f'e.g., 1.0', type='text'),
-                ], style={'margin-bottom': '10px'})
+                dbc.Col([
+                    html.Span(subscripted_species + [":"], style={'marginRight': '5px'}),
+                    dbc.Input(
+                        id={'type': 'concentration-input', 'index': species},
+                        type='text',
+                        style={'width': '60px', 'display': 'inline-block'}
+                    )
+                ], width="auto", style={'display': 'flex', 'alignItems': 'center', 'marginRight': '15px'})
             )
         
-        # Display unique species on the webpage
-        species_list = [html.P(f"Detected Species: {', '.join(unique_species)}")]
+        row = dbc.Row(
+            concentration_inputs,
+            className="g-0",
+            style={'display': 'flex', 'flexWrap': 'nowrap', 'overflowX': 'auto', 'marginBottom': '10px'}
+        )
         
-        return concentration_inputs, {'display': 'inline-block'}, species_list
+        return row, {'display': 'inline-block'}, dash.no_update
     return dash.no_update, {'display': 'none'}, dash.no_update
 
 @callback(
     Output('kinetics-graph', 'figure'),
+    Output('kinetics-graph', 'style'),  # Add output for graph style
     Input('submit-button', 'n_clicks'),
     State({'type': 'reaction-input', 'index': dash.ALL}, 'value'),
     State({'type': 'rate-constant-input', 'index': dash.ALL}, 'value'),
@@ -213,12 +236,12 @@ def generate_graph(n_clicks, reactions, rate_constants, concentrations):
     if n_clicks > 0 and all(reactions) and all(rate_constants) and all(concentrations):
         ks = list(map(float, rate_constants))
         
-        # Print the structure of dash.callback_context.states_list[2]
-        print("States List[2]:", dash.callback_context.states_list[2])
-        
         # Convert concentrations list to a dictionary
         C0 = {concentration_id['id']['index']: float(concentration) for concentration_id, concentration in zip(dash.callback_context.states_list[2], concentrations)}
         
+        # Strip out HTML tags from species names
+        C0 = {re.sub(r'<.*?>', '', key): value for key, value in C0.items()}
+        
         fig = reactiongraphing(reactions, ks, C0)
-        return fig
-    return go.Figure()
+        return fig, {'display': 'block'}  # Show the graph
+    return go.Figure(), {'display': 'none'}  # Hide the graph if conditions are not met
