@@ -106,11 +106,34 @@ def reactiongraphing(reactions, ks, C0):
         fig.add_trace(go.Scatter(x=solution.t, y=solution.y[i], mode='lines', name=formatted_species))
 
     fig.update_layout(
-        title='Concentration vs. Time',
-        xaxis_title='Time',
-        yaxis_title='Concentration',
-        xaxis=dict(range=[0, steady_state_time], gridcolor='rgba(0,0,0,0)'),
-        yaxis=dict(range=[0, np.max(solution.y)], gridcolor='rgba(0,0,0,0)'),  # Fixed the ambiguous truth value error
+        title=dict(
+            text='Concentrations vs. Time',
+            x=0.5,
+            font=dict(size=24, family='Merriweather', color='white')
+        ),
+        xaxis=dict(
+            title='Time',
+            title_font=dict(size=24, family='Merriweather', color='white'),
+            tickfont=dict(size=18, family='Merriweather', color='white'),  # Increased tick font size
+            ticks='outside',
+            ticklen=5,
+            tickwidth=2,
+            tickcolor='white',
+            gridcolor='rgba(0,0,0,0)',
+            range=[0, steady_state_time]
+        ),
+        yaxis=dict(
+            title='Concentration',
+            title_font=dict(size=24, family='Merriweather', color='white'),
+            tickfont=dict(size=18, family='Merriweather', color='white'),  # Increased tick font size
+            dtick=0.1,
+            ticks='outside',
+            ticklen=5,
+            tickwidth=2,
+            tickcolor='white',
+            gridcolor='rgba(0,0,0,0)',
+            range=[0, np.max(solution.y)]
+        ),
         template='plotly_dark',
         autosize=False,
         width=600,
