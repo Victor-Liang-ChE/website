@@ -136,19 +136,19 @@ fig.update_layout(
         text=f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K",
         x=0.5,  # Center the title
         xanchor='center',
-        font=dict(color='white', family='Merriweather')  # Set title text color to white and font to Merriweather
+        font=dict(color='white', family='Merriweather Sans')  # Set title text color to white and font to Merriweather Sans
     ),
     xaxis=dict(
         title=f'Liquid mole fraction {comp1}',
         range=[0, 1],
         constrain='domain',
-        title_font=dict(size=18, color='white', family='Merriweather'),  # Increase x-axis title font size, set color to white, and font to Merriweather
+        title_font=dict(size=18, color='white', family='Merriweather Sans'),  # Increase x-axis title font size, set color to white, and font to Merriweather Sans
         showgrid=False,  # Remove x-axis grid
         ticks='outside',  # Add tick marks
         ticklen=5,  # Length of tick marks
         tickwidth=2,  # Width of tick marks
         tickcolor='white',  # Color of tick marks
-        tickfont=dict(size=14, color='white', family='Merriweather'),  # Set x-axis tick labels size, color to white, and font to Merriweather
+        tickfont=dict(size=14, color='white', family='Merriweather Sans'),  # Set x-axis tick labels size, color to white, and font to Merriweather Sans
         dtick=0.1  # Set tick increment to 0.1
     ),
     yaxis=dict(
@@ -156,13 +156,13 @@ fig.update_layout(
         range=[0, 1],
         scaleanchor='x',
         scaleratio=1,
-        title_font=dict(size=18, color='white', family='Merriweather'),  # Increase y-axis title font size, set color to white, and font to Merriweather
+        title_font=dict(size=18, color='white', family='Merriweather Sans'),  # Increase y-axis title font size, set color to white, and font to Merriweather Sans
         showgrid=False,  # Remove y-axis grid
         ticks='outside',  # Add tick marks
         ticklen=5,  # Length of tick marks
         tickwidth=2,  # Width of tick marks
         tickcolor='white',  # Color of tick marks
-        tickfont=dict(size=14, color='white', family='Merriweather'),  # Set y-axis tick labels size, color to white, and font to Merriweather
+        tickfont=dict(size=14, color='white', family='Merriweather Sans'),  # Set y-axis tick labels size, color to white, and font to Merriweather Sans
         dtick=0.1  # Set tick increment to 0.1
     ),
     legend=dict(
@@ -170,7 +170,7 @@ fig.update_layout(
         y=0.1,
         xanchor='left',
         yanchor='bottom',
-        font=dict(color='white', family='Merriweather')  # Set legend text color to white and font to Merriweather
+        font=dict(color='white', family='Merriweather Sans')  # Set legend text color to white and font to Merriweather Sans
     ),
     margin=dict(l=10, r=10, t=40, b=10),  # Reduce margins to remove whitespace
     plot_bgcolor='#010131',  # Set plot background color to dark blue from CSS
@@ -195,7 +195,7 @@ layout = html.Div([
                     message='',
                 ),
             ], style={'margin-bottom': '10px'}),
-            html.Label('Distillate composition (xd):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Label(['Distillate composition (x', html.Sub('d'), '):'], style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Span(id='xd-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='xd-slider', 
@@ -204,9 +204,11 @@ layout = html.Div([
                            step=0.01, 
                            value=0.9, 
                            marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
-                           updatemode='drag')
+                           updatemode='drag',
+                           className='slider-orange'  # Assign class for styling
+                )
             ], style={'margin-bottom': '5px'}),
-            html.Label('Bottoms composition (xb):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Label(['Bottoms composition (x', html.Sub('b'), '):'], style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Span(id='xb-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='xb-slider', 
@@ -215,9 +217,11 @@ layout = html.Div([
                            step=0.01, 
                            value=0.1, 
                            marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
-                           updatemode='drag')
+                           updatemode='drag',
+                           className='slider-green'  # Assign class for styling
+                )
             ], style={'margin-bottom': '5px'}),
-            html.Label('Feed composition (xf):', style={'display': 'inline-block', 'margin-right': '10px'}),
+            html.Label(['Feed composition (x', html.Sub('f'), '):'], style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Span(id='xf-display', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Div([
                 dcc.Slider(id='xf-slider', 
@@ -226,7 +230,9 @@ layout = html.Div([
                            step=0.01, 
                            value=0.5, 
                            marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
-                           updatemode='drag')
+                           updatemode='drag',
+                           className='slider-red'  # Assign class for styling
+                )
             ], style={'margin-bottom': '5px'}),
             html.Label('Feed quality (q):', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Span(id='q-display', style={'display': 'inline-block', 'margin-right': '10px'}),
@@ -237,7 +243,9 @@ layout = html.Div([
                            step=0.1, 
                            value=0.5, 
                            marks={i: str(round(i, 1)) for i in np.arange(-2, 2, 0.5)}, 
-                           updatemode='drag')
+                           updatemode='drag',
+                           className='slider-blue'  # Assign class for styling
+                )
             ], style={'margin-bottom': '5px'}),
             html.Label('Reflux ratio (R):', style={'display': 'inline-block', 'margin-right': '10px'}),
             html.Span(id='R-display', style={'display': 'inline-block', 'margin-right': '10px'}),
@@ -248,7 +256,9 @@ layout = html.Div([
                            step=0.1, 
                            value=2, 
                            marks={i: str(round(i, 1)) for i in np.arange(0, 10, 0.5)}, 
-                           updatemode='drag')
+                           updatemode='drag',
+                           className='slider-purple'  # Assign class for styling
+                )
             ], style={'margin-bottom': '5px'}),
         ], style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top', 'padding': '10px'}),
         html.Div([
@@ -492,6 +502,34 @@ def update_plot(xd, xb, xf, q, R, xi, yi, z, comp1, comp2, T, P): # use Patch to
             'showlegend': False
         }
     ])
+
+    patched_figure['data'].extend([
+        {
+            'name': 'Rectifying Dot',
+            'x': [xd],
+            'y': [xd],
+            'mode': 'markers',
+            'marker': {'color': 'orange', 'size': 10},
+            'showlegend': False
+        },
+        {
+            'name': 'Stripping Dot',
+            'x': [xb],
+            'y': [xb],
+            'mode': 'markers',
+            'marker': {'color': 'green', 'size': 10},
+            'showlegend': False
+        },
+        {
+            'name': 'Feed Dot',
+            'x': [xf],
+            'y': [xf],
+            'mode': 'markers',
+            'marker': {'color': 'red', 'size': 10},
+            'showlegend': False
+        }
+    ])
+
     if T is not None:
         figtitle = f"McCabe-Thiele Method for {comp1} + {comp2} at {T} K"
     else:
@@ -501,14 +539,14 @@ def update_plot(xd, xb, xf, q, R, xi, yi, z, comp1, comp2, T, P): # use Patch to
             text=figtitle,
             x=0.5,  # Center the title
             xanchor='center',
-            font=dict(color='white', family='Merriweather')  # Set title text color to white and font to Merriweather
+            font=dict(color='white', family='Merriweather Sans')  # Set title text color to white and font to Merriweather
         ),
         legend=dict(
             x=0.75,  # Position legend inside the graph
             y=0.1,
             xanchor='left',
             yanchor='bottom',
-            font=dict(color='white', family='Merriweather')  # Set legend text color to white and font to Merriweather
+            font=dict(color='white', family='Merriweather Sans')  # Set legend text color to white and font to Merriweather
         ),
         margin=dict(l=10, r=10, t=40, b=10),  # Reduce margins to remove whitespace
         plot_bgcolor='#010131',  # Set plot background color to dark blue from CSS
@@ -530,11 +568,11 @@ def update_plot(xd, xb, xf, q, R, xi, yi, z, comp1, comp2, T, P): # use Patch to
     Input('R-slider', 'value')
 )
 def update_slider_values(xd, xb, xf, q, R):
-    xd_display = f'{xd:.2f}'
-    xb_display = f'{xb:.2f}'
-    xf_display = f'{xf:.2f}'
-    q_display = f'{q:.1f}'
-    R_display = f'{R:.1f}'
+    xd_display = html.Span(['x', html.Sub('d'), f' = {xd:.2f}'])
+    xb_display = html.Span(['x', html.Sub('b'), f' = {xb:.2f}'])
+    xf_display = html.Span(['x', html.Sub('f'), f' = {xf:.2f}'])
+    q_display = f'q = {q:.1f}'
+    R_display = f'R = {R:.1f}'
     return xd_display, xb_display, xf_display, q_display, R_display
 
 @callback(
@@ -565,3 +603,5 @@ def enforce_constraints(xd, xf, xb):
             xb = xf - 0.01
 
     return xd, xf, xb
+
+# andrew idea: make the text or the slider color match the color of the line shown in the graph

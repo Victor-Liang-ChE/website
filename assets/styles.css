@@ -1,5 +1,5 @@
 /* styles.css */
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Merriweather+Sans:wght@400;700&display=swap');
 
 html, body {
     height: 100%;
@@ -7,7 +7,8 @@ html, body {
     padding: 0;
     background-color: #010131; /* Dark blue color */
     color: white; /* Ensure text is white */
-    font-family: 'Merriweather', serif; /* Merriweather font */
+    font-family: 'Merriweather Sans', sans-serif;
+    /* font-family: 'Arial', sans-serif; */
 }
 
 .bg-dark-blue {
@@ -16,7 +17,7 @@ html, body {
 }
 
 .bg-blue {
-    background-color: #0000a0; /* Blue color */
+    background-color: #000070; /* Blue color */
     color: white; /* Ensure text is white */
 }
 
@@ -84,7 +85,7 @@ html, body {
 }
 
 .box {
-    background-color: #0000a0; /* Blue color */
+    background-color: #000070; /* Blue color */
     color: white;
     padding: 20px;
     text-align: center;
@@ -102,5 +103,46 @@ html, body {
 
 .box:hover {
     transform: scale(1.05);
-    background-color: #003875; /* Darker blue on hover */
+    background-color: #003875; /* Lighter blue on hover */
+}
+
+/* Slider styles */
+.slider-orange .rc-slider-track {
+    background-color: orange;
+}
+
+.slider-orange .rc-slider-handle {
+    border-color: orange;
+}
+
+.slider-green .rc-slider-track {
+    background-color: green;
+}
+
+.slider-green .rc-slider-handle {
+    border-color: green;
+}
+
+.slider-red .rc-slider-track {
+    background-color: red;
+}
+
+.slider-red .rc-slider-handle {
+    border-color: red;
+}
+
+.slider-blue .rc-slider-track {
+    background-color: blue;
+}
+
+.slider-blue .rc-slider-handle {
+    border-color: blue;
+}
+
+.slider-purple .rc-slider-track {
+    background-color: purple;
+}
+
+.slider-purple .rc-slider-handle {
+    border-color: purple;
 }

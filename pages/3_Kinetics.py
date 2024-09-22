@@ -109,12 +109,12 @@ def reactiongraphing(reactions, ks, C0):
         title=dict(
             text='Concentrations vs. Time',
             x=0.5,
-            font=dict(size=24, family='Merriweather', color='white')
+            font=dict(size=24, family='Merriweather Sans', color='white')
         ),
         xaxis=dict(
             title='Time',
-            title_font=dict(size=24, family='Merriweather', color='white'),
-            tickfont=dict(size=18, family='Merriweather', color='white'),  # Increased tick font size
+            title_font=dict(size=24, family='Merriweather Sans', color='white'),
+            tickfont=dict(size=18, family='Merriweather Sans', color='white'),  # Increased tick font size
             ticks='outside',
             ticklen=5,
             tickwidth=2,
@@ -124,9 +124,8 @@ def reactiongraphing(reactions, ks, C0):
         ),
         yaxis=dict(
             title='Concentration',
-            title_font=dict(size=24, family='Merriweather', color='white'),
-            tickfont=dict(size=18, family='Merriweather', color='white'),  # Increased tick font size
-            dtick=0.1,
+            title_font=dict(size=24, family='Merriweather Sans', color='white'),
+            tickfont=dict(size=18, family='Merriweather Sans', color='white'),  # Increased tick font size
             ticks='outside',
             ticklen=5,
             tickwidth=2,
@@ -135,9 +134,11 @@ def reactiongraphing(reactions, ks, C0):
             range=[0, np.max(solution.y)]
         ),
         template='plotly_dark',
+        plot_bgcolor='#010131',  # Set plot background color
+        paper_bgcolor='#010131',  # Set paper background color
         autosize=False,
-        width=600,
-        height=600
+        width=500,
+        height=500
     )
 
     return fig
@@ -146,7 +147,7 @@ def reactiongraphing(reactions, ks, C0):
 layout = html.Div([
     html.Div(id='reaction-inputs', children=[
         dbc.InputGroup([
-            dbc.InputGroupText("Reaction:", style={'margin-left': '2px'}),
+            dbc.InputGroupText("Elementary Reaction:", style={'margin-left': '2px'}),
             dbc.Input(id={'type': 'reaction-input', 'index': 0}, placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
             dbc.InputGroupText("Rate Constant:"),
             dbc.Input(id={'type': 'rate-constant-input', 'index': 0}, type='number', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'})
@@ -161,7 +162,7 @@ layout = html.Div([
     html.Div(id='concentration-inputs', children=[], style={'margin-bottom': '0px'}),
     dbc.Button("Submit", id='submit-button', n_clicks=0, style={'display': 'none'}),
     html.Div(
-        dcc.Graph(id='kinetics-graph', style={'display': 'none', 'width': '600px', 'height': '600px'}),
+        dcc.Graph(id='kinetics-graph', style={'display': 'none', 'width': '500px', 'height': '500px'}),
         style={'display': 'flex', 'justify-content': 'center'}  # Center the graph
     )
 ], style={'margin-left': '10px', 'margin-top': '10px'})

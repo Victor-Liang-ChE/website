@@ -37,8 +37,8 @@ def update_title(pathname):
         return 'Kinetics'
     elif pathname == '/dropchance':
         return 'Drop Chance Calculator'
-    elif pathname == '/emailgen':
-        return 'Email Generator'
+    elif pathname == '/misc':
+        return 'Miscellaneous'
     elif pathname == '/robin':
         return 'Robinhood Autoseller'
     else:
