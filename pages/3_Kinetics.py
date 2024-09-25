@@ -233,7 +233,7 @@ def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants)
                     html.Span(subscripted_species + [":"], style={'marginRight': '5px'}),
                     dbc.Input(
                         id={'type': 'concentration-input', 'index': species},
-                        type='text',
+                        type='number',
                         style={'width': '60px', 'display': 'inline-block'}
                     )
                 ], width="auto", style={'display': 'flex', 'alignItems': 'center', 'marginRight': '15px'})
@@ -257,14 +257,23 @@ def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants)
     State({'type': 'concentration-input', 'index': dash.ALL}, 'value')
 )
 def generate_graph(n_clicks, reactions, rate_constants, concentrations):
-    if n_clicks > 0 and all(reactions) and all(rate_constants) and all(concentrations):
+    print("Submit button clicked:", n_clicks)  # Debugging statement
+    print("Reactions:", reactions)  # Debugging statement
+    print("Rate Constants:", rate_constants)  # Debugging statement
+    print("Concentrations:", concentrations)  # Debugging statement
+    
+    # Check if all reactions, rate constants, and concentrations are not None
+    if n_clicks > 0 and all(reactions) and all(rate_constants) and all(c is not None for c in concentrations):
         ks = list(map(float, rate_constants))
         
         # Convert concentrations list to a dictionary
-        C0 = {concentration_id['id']['index']: float(concentration) for concentration_id, concentration in zip(dash.callback_context.states_list[2], concentrations)}
+        C0 = {concentration_id['id']['index']: str(concentration) for concentration_id, concentration in zip(dash.callback_context.states_list[2], concentrations)}
         
         # Strip out HTML tags from species names
         C0 = {re.sub(r'<.*?>', '', key): value for key, value in C0.items()}
+
+        # Debugging: Print the converted concentrations to check their values
+        print("Concentrations (after conversion):", C0)
         
         fig = reactiongraphing(reactions, ks, C0)
         return fig, {'display': 'block'}  # Show the graph

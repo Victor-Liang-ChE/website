@@ -603,5 +603,3 @@ def enforce_constraints(xd, xf, xb):
             xb = xf - 0.01
 
     return xd, xf, xb
-
-# andrew idea: make the text or the slider color match the color of the line shown in the graph
