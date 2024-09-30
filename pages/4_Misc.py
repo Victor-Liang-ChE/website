@@ -7,6 +7,6 @@ layout = html.Div([
     html.Div([
         dcc.Link(html.Div("Drop Chance", className="box"), href="/dropchance"),
         dcc.Link(html.Div("Placeholder", className="box"), href="/emailgen"),
-        dcc.Link(html.Div("Robinhood Autoseller", className="box"), href="/robin")
+        dcc.Link(html.Div("Placeholder 2", className="box"), href="/placeholder2")
     ], className="box-container")
 ], className="container")

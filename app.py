@@ -39,8 +39,6 @@ def update_title(pathname):
         return 'Drop Chance Calculator'
     elif pathname == '/misc':
         return 'Miscellaneous'
-    elif pathname == '/robin':
-        return 'Robinhood Autoseller'
     else:
         return 'My Website'
 

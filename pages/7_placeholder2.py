@@ -2,7 +2,7 @@ from dash import html, dcc, callback, Output, Input
 import dash
 
 
-dash.register_page(__name__, path='/robin', name="Robinhood Autoseller")
+dash.register_page(__name__, path='/placeholder2', name="Placeholder")
 
 def dropchance(percent, attempts):
     print(f'There is a {100 - ((100 - percent) / 100) ** attempts * 100:.1f}% chance that you will receive the {percent}% drop at least once in {attempts} tries.')

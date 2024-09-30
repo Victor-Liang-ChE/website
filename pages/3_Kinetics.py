@@ -39,10 +39,6 @@ def reactiongraphing(reactions, ks, C0):
     if len(ks) != len(reactions):
         raise ValueError("The number of rate constants does not match the number of reactions.")
 
-    # Function to remove numerical coefficients from species names
-    def remove_coefficients(species):
-        return re.sub(r'^\d*\*?', '', species)
-
     # Function to format species names with subscripted numbers using HTML
     def format_species(species):
         return re.sub(r'(\d+)', r'<sub>\1</sub>', species)
@@ -92,10 +88,12 @@ def reactiongraphing(reactions, ks, C0):
     solution = solve_ivp(odes, t_span, y0, t_eval=t_eval, method='RK45')
 
     # Determine the steady state time
-    tolerance = 1e-4
+    max_concentration = np.max(solution.y)
+    relative_tolerance = max_concentration * 1e-4  # Relative tolerance based on the maximum concentration
+    
     steady_state_time = t_span[1]
     for i in range(1, len(solution.t)):
-        if np.all(np.abs(solution.y[:, i] - solution.y[:, i-1]) < tolerance):
+        if np.all(np.abs(solution.y[:, i] - solution.y[:, i-1]) < relative_tolerance):
             steady_state_time = solution.t[i]
             break
 
@@ -257,11 +255,6 @@ def detect_species_and_input_concentrations(n_clicks, reactions, rate_constants)
     State({'type': 'concentration-input', 'index': dash.ALL}, 'value')
 )
 def generate_graph(n_clicks, reactions, rate_constants, concentrations):
-    print("Submit button clicked:", n_clicks)  # Debugging statement
-    print("Reactions:", reactions)  # Debugging statement
-    print("Rate Constants:", rate_constants)  # Debugging statement
-    print("Concentrations:", concentrations)  # Debugging statement
-    
     # Check if all reactions, rate constants, and concentrations are not None
     if n_clicks > 0 and all(reactions) and all(rate_constants) and all(c is not None for c in concentrations):
         ks = list(map(float, rate_constants))
@@ -271,9 +264,6 @@ def generate_graph(n_clicks, reactions, rate_constants, concentrations):
         
         # Strip out HTML tags from species names
         C0 = {re.sub(r'<.*?>', '', key): value for key, value in C0.items()}
-
-        # Debugging: Print the converted concentrations to check their values
-        print("Concentrations (after conversion):", C0)
         
         fig = reactiongraphing(reactions, ks, C0)
         return fig, {'display': 'block'}  # Show the graph
