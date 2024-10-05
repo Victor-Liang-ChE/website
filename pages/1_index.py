@@ -30,7 +30,7 @@ sentences = [
         " but Lakers are cool)"
     ]),
     html.P(["I am a ", html.B("gamer"), ". 🎮"]), 
-    "Want to chat? victorliang@ucsb.edu 📧",
+    "Want to contact me? victorliang@ucsb.edu 📧",
     "Under construction, but take a look around! 😄"
 ]
 

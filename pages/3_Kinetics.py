@@ -89,13 +89,24 @@ def reactiongraphing(reactions, ks, C0):
 
     # Determine the steady state time
     max_concentration = np.max(solution.y)
+    print(f"Max concentration: {max_concentration}")
+    
     relative_tolerance = max_concentration * 1e-4  # Relative tolerance based on the maximum concentration
+    print(f"Relative tolerance: {relative_tolerance}")
     
     steady_state_time = t_span[1]
+    print(f"Initial steady state time: {steady_state_time}")
+    
     for i in range(1, len(solution.t)):
-        if np.all(np.abs(solution.y[:, i] - solution.y[:, i-1]) < relative_tolerance):
+        concentration_diff = np.abs(solution.y[:, i] - solution.y[:, i-1])
+        print(f"Time: {solution.t[i]}, Concentration difference: {concentration_diff}")
+        
+        if np.all(concentration_diff < relative_tolerance):
             steady_state_time = solution.t[i]
+            print(f"Steady state reached at time: {steady_state_time}")
             break
+    
+    print(f"Final steady state time: {steady_state_time}")
 
     # Create the plotly figure
     fig = go.Figure()
@@ -183,7 +194,7 @@ def update_reaction_inputs(add_clicks, remove_clicks, reaction_inputs):
 
     if button_id == 'add-reaction' and add_clicks > 0:
         new_reaction_input = dbc.InputGroup([
-            dbc.InputGroupText("Reaction:", style={'margin-left': '2px'}),
+            dbc.InputGroupText("Elementary Reaction:", style={'margin-left': '2px'}),
             dbc.Input(id={'type': 'reaction-input', 'index': add_clicks}, placeholder='e.g., 2H2 + O2 -> 2H2O', type='text', style={'margin-right': '10px', 'margin-left': '10px', 'width': '500px'}),
             dbc.InputGroupText("Rate Constant:"),
             dbc.Input(id={'type': 'rate-constant-input', 'index': add_clicks}, type='number', style={'margin-right': '10px', 'margin-left': '10px', 'width': '50px'})
