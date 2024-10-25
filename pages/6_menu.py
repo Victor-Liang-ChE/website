@@ -28,13 +28,11 @@ def scrape_menu():
         if 'text-center course-row' in tr.get('class', []):
             text_content = tr.get_text(separator=' ', strip=True)
             menu_items.append({'text': text_content, 'class': 'course-row'})
-            print(f"Extracted text from <tr> with class 'text-center course-row': {text_content}")
         else:
             first_dl = tr.find('dl')
             if first_dl:
                 items = [dd.text.strip() for dd in first_dl.find_all('dd')]
                 menu_items.extend(items)
-                print(f"Extracted items from <dl>: {items}")
 
     return menu_items
 
