@@ -16,11 +16,11 @@ def scrape_menu():
 
     tbody = menu_section.find('tbody')
 
-    print(f"Extracted <tbody> content: {tbody}")
-
     # Extract text content from each <tr> element for the next 5 days
     menu_items = [[] for _ in range(5)]
+    tr_count = 0
     for tr in tbody.find_all('tr'):
+        tr_count += 1
         tds = tr.find_all('td')
         for i in range(min(5, len(tds))):
             if 'text-center course-row' in tr.get('class', []):
@@ -30,7 +30,13 @@ def scrape_menu():
             else:
                 first_dl = tds[i].find('dl')
                 if first_dl:
-                    items = [dd.text.strip().replace('(v)', '').replace('(vgn)', '').strip() for dd in first_dl.find_all('dd')]
+                    items = []
+                    for idx, dd in enumerate(first_dl.find_all('dd')):
+                        text = dd.text.strip().replace('(v)', '').replace('(vgn)', '').strip()
+                        if idx == 0 and tr_count in [6, 10, 12]:
+                            items.append({'text': text, 'highlight': True})
+                        else:
+                            items.append({'text': text, 'highlight': False})
                     menu_items[i].extend(items)
 
     return menu_items
@@ -71,8 +77,10 @@ def update_menu(n_intervals):
         for item in items:
             if isinstance(item, dict) and item.get('class') == 'course-row':
                 day_layout.append(html.Li(item['text'], style={'font-size': '20px', 'list-style-type': 'none'}))
+            elif isinstance(item, dict) and item.get('highlight'):
+                day_layout.append(html.Li(item['text'], style={'font-weight': 'bold', 'color': 'red'}))
             else:
-                day_layout.append(html.Li(item))
+                day_layout.append(html.Li(item['text']))
         menu_layout.append(html.Div(day_layout))
 
     return menu_layout
