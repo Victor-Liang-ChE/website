@@ -41,14 +41,8 @@ def scrape_menu():
 
     return menu_items
 
-# Get today's date and the date 4 days in the future in PST
-pst = pytz.timezone('America/Los_Angeles')
-today = datetime.datetime.now(pst)
-future_date = today + datetime.timedelta(days=4)
-date_range = f"{today.strftime('%m/%d')} to {future_date.strftime('%m/%d')}"
-
 layout = html.Div([
-    html.H1(f"Portola Dining Dinner Menu from {date_range}"),
+    html.H1(id='menu-title'),
     dcc.Interval(
         id='interval-component',
         interval=60*1000,  # update every 60 seconds
@@ -58,16 +52,20 @@ layout = html.Div([
 ])
 
 @callback(
-    Output('menu-output', 'children'),
+    [Output('menu-output', 'children'),
+     Output('menu-title', 'children')],
     Input('interval-component', 'n_intervals')
 )
 def update_menu(n_intervals):
     menu_items = scrape_menu()
     if isinstance(menu_items, str):  # Check if an error message was returned
-        return menu_items
+        return menu_items, "Error"
 
     # Get today's date in PST
-    today = datetime.datetime.now(pytz.timezone('America/Los_Angeles'))
+    pst = pytz.timezone('America/Los_Angeles')
+    today = datetime.datetime.now(pst)
+    future_date = today + datetime.timedelta(days=4)
+    date_range = f"{today.strftime('%m/%d')} to {future_date.strftime('%m/%d')}"
 
     # Create the layout for the menu for the next 5 days
     menu_layout = []
@@ -83,4 +81,4 @@ def update_menu(n_intervals):
                 day_layout.append(html.Li(item['text']))
         menu_layout.append(html.Div(day_layout))
 
-    return menu_layout
+    return menu_layout, f"Portola Dining Dinner Menu from {date_range}"
