@@ -10,6 +10,7 @@ external_css = ["/assets/styles.css"]
 app = Dash(__name__, pages_folder='pages', use_pages=True, external_stylesheets=external_css, suppress_callback_exceptions=True)
 
 navbar_pages = ['About', 'McCabe-Thiele Interactive Plot', 'Kinetics Graph', 'Process Dynamics', 'Miscellaneous']
+# nav bar ordering system determined by the number in the filename, e.g. 7_processdynamics.py
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
