@@ -1,4 +1,4 @@
-from dash import Dash, html, dcc, callback, Output, Input, State, ctx
+from dash import Dash, html, dcc, callback, Output, Input, State, ctx, MATCH, ALL
 import dash
 import plotly.graph_objs as go
 import numpy as np
@@ -7,191 +7,129 @@ dash.register_page(__name__, path='/processdynamics', name="Process Dynamics")
 
 layout = html.Div([
     html.Div([
-        html.Div(id='order-buttons', children=[
-            html.Button('First Order', id='first-order-button', className='btn btn-primary', style={'margin-right': '10px'}),
-            html.Button('Second Order', id='second-order-button', className='btn btn-secondary')
-        ], style={'margin-bottom': '20px', 'text-align': 'left'}),
-        
-        html.Div(id='function-buttons', children=[
-            html.Div(id='step-function-container', children=[
-                html.Div('↓', id='step-function-arrow', style={'display': 'none', 'color': 'white', 'font-size': '20px'}),
-                html.Button('Step Function', id='step-function-button', className='btn btn-info', style={'margin-right': '10px', 'display': 'none'})
-            ], style={'display': 'inline-block', 'text-align': 'left'}),
-            
-            html.Div(id='ramp-function-container', children=[
-                html.Div('↓', id='ramp-function-arrow', style={'display': 'none', 'color': 'white', 'font-size': '20px'}),
-                html.Button('Ramp Function', id='ramp-function-button', className='btn btn-warning', style={'margin-right': '10px', 'display': 'none'})
-            ], style={'display': 'inline-block', 'text-align': 'left'}),
-            
-            html.Button('Reset', id='reset-button', className='btn btn-danger', style={'display': 'none'})
-        ], style={'text-align': 'left', 'margin-bottom': '20px'}),
-        
-        html.Div(id='function-output', style={'text-align': 'center', 'margin-bottom': '20px'}),
-        
-        html.Div(id='sliders-container', children=[
-            html.Div([
-                html.Label('Gain (K):', style={'display': 'inline-block', 'margin-right': '10px'}),
-                html.Span(id='K-display', style={'margin-right': '10px'}),
-                dcc.Slider(id='input-K', min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag', className='slider-orange')
-            ], style={'margin-bottom': '10px'}),
-            
-            html.Div([
-                html.Label('Time Constant (τ):', style={'display': 'inline-block', 'margin-right': '10px'}),
-                html.Span(id='tau-display', style={'margin-right': '10px'}),
-                dcc.Slider(id='input-tau', min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag', className='slider-green')
-            ], style={'margin-bottom': '10px'}),
-            
-            html.Div([
-                html.Label('Magnitude (M):', style={'display': 'inline-block', 'margin-right': '10px'}),
-                html.Span(id='M-display', style={'margin-right': '10px'}),
-                dcc.Slider(id='input-M', min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag', className='slider-red')
-            ], style={'margin-bottom': '10px'}),
-
-            html.Div([
-                html.Label('Damping Ratio (ζ):', style={'display': 'inline-block', 'margin-right': '10px'}),
-                html.Span(id='zeta-display', style={'margin-right': '10px'}),
-                dcc.Slider(id='input-zeta', min=0, max=2, step=0.01, value=1, marks={i: str(i) for i in range(3)}, updatemode='drag', className='slider-blue')
-            ], style={'margin-bottom': '10px'})
-        ], style={'display': 'none'}),
-        
-        html.Button('Generate Graph', id='generate-graph-button', className='btn btn-success', style={'margin-left': '0px', 'margin-top': '10px', 'display': 'none'}),
-        dcc.Checklist(
-            id='lock-axes',
-            options=[{'label': 'Lock Axes', 'value': 'lock'}],
-            value=[],
-            style={'margin-top': '10px', 'display': 'none'}
-        )
-    ], style={'flex': '1', 'padding': '20px'}),
+        html.Button('1st Order', id='first-order-button', className='btn btn-primary', style={'margin-right': '10px'}),
+        html.Button('2nd Order', id='second-order-button', className='btn btn-secondary', style={'margin-right': '10px'})
+    ], id='order-buttons', style={'margin-bottom': '20px', 'text-align': 'left'}),
+    
+    html.Div(id='function-buttons', style={'text-align': 'left', 'margin-bottom': '20px'}),
     
     html.Div([
-        dcc.Graph(id='graph-output', style={'display': 'none', 'margin-top': '20px'})
-    ], style={'flex': '2', 'padding': '20px'}),
+        html.Div(id='sliders-container', style={'display': 'none', 'float': 'left', 'width': '30%'}),
+        dcc.Graph(id='graph-output', style={'display': 'none', 'float': 'right', 'width': '65%'})
+    ], style={'display': 'flex'}),
     
-    dcc.Store(id='last-order-store', data=''),
-    dcc.Store(id='last-button-store', data=''),
-    dcc.Store(id='axes-limits-store', data={'x': None, 'y': None}),
-    html.Div(id='js-reload', style={'display': 'none'})
-], style={'display': 'flex', 'justify-content': 'space-between'})
+    dcc.Store(id='order-store'),
+    dcc.Store(id='function-store')
+])
 
 @callback(
-    [Output('order-buttons', 'style'),
-     Output('step-function-button', 'style'),
-     Output('ramp-function-button', 'style'),
-     Output('reset-button', 'style'),
-     Output('generate-graph-button', 'style'),
-     Output('last-order-store', 'data'),
-     Output('input-zeta', 'style')],
+    [Output('function-buttons', 'children'),
+     Output('order-store', 'data')],
     [Input('first-order-button', 'n_clicks'),
-     Input('second-order-button', 'n_clicks'),
-     Input('reset-button', 'n_clicks')]
+     Input('second-order-button', 'n_clicks')],
+    [State('order-store', 'data')]
 )
-def display_function_buttons(first_order_clicks, second_order_clicks, reset_clicks):
+def display_function_buttons(first_order_clicks, second_order_clicks, order_store):
     ctx_triggered = ctx.triggered_id
-    last_order = ''
-    zeta_style = {'display': 'none'}
-    if ctx_triggered == 'reset-button':
-        return {'display': 'flex', 'justify-content': 'left'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, last_order, zeta_style
-    elif ctx_triggered == 'first-order-button':
-        last_order = 'first'
-        return {'display': 'none'}, {'display': 'inline-block', 'margin-right': '10px'}, {'display': 'inline-block', 'margin-right': '10px'}, {'display': 'inline-block'}, {'display': 'inline-block', 'margin-left': '0px', 'margin-top': '10px'}, last_order, zeta_style
+    if ctx_triggered == 'first-order-button':
+        order_store = 'first'
     elif ctx_triggered == 'second-order-button':
-        last_order = 'second'
-        zeta_style = {'display': 'block'}
-        return {'display': 'none'}, {'display': 'inline-block', 'margin-right': '10px'}, {'display': 'none'}, {'display': 'inline-block'}, {'display': 'inline-block', 'margin-left': '0px', 'margin-top': '10px'}, last_order, zeta_style
-    return {'display': 'flex', 'justify-content': 'left'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}, last_order, zeta_style
+        order_store = 'second'
+
+    if order_store == 'first':
+        return html.Div([
+            html.Button('Step Function', id='step-function-button', className='btn btn-info', style={'margin-right': '10px'}),
+            html.Button('Ramp Function', id='ramp-function-button', className='btn btn-warning', style={'margin-right': '10px'})
+        ]), order_store
+    elif order_store == 'second':
+        return html.Div([
+            html.Button('Step Function', id='step-function-button', className='btn btn-info', style={'margin-right': '10px'}),
+            html.Button('Ramp Function', id='ramp-function-button', className='btn btn-warning', style={'margin-right': '10px', 'background-color': 'grey', 'pointer-events': 'none'})
+        ]), order_store
+    return html.Div(), order_store
 
 @callback(
-    [Output('step-function-arrow', 'style'),
-     Output('ramp-function-arrow', 'style'),
-     Output('last-button-store', 'data'),
-     Output('ramp-function-button', 'disabled')],
+    [Output('sliders-container', 'children'),
+     Output('sliders-container', 'style'),
+     Output('graph-output', 'figure', allow_duplicate=True),
+     Output('graph-output', 'style'),
+     Output('function-store', 'data')],
     [Input('step-function-button', 'n_clicks'),
-     Input('ramp-function-button', 'n_clicks'),
-     Input('reset-button', 'n_clicks')],
-    [State('last-order-store', 'data')]
+     Input('ramp-function-button', 'n_clicks')],
+    [State('order-store', 'data')],
+    prevent_initial_call=True
 )
-def manage_arrows(step_function_clicks, ramp_function_clicks, reset_clicks, last_order):
+def update_graph_and_sliders(step_function_clicks, ramp_function_clicks, order_store):
     ctx_triggered = ctx.triggered_id
-    step_arrow_style = {'display': 'none', 'color': 'white', 'font-size': '20px'}
-    ramp_arrow_style = {'display': 'none', 'color': 'white', 'font-size': '20px'}
-    last_button = ''
-    ramp_disabled = False
+    sliders = []
+    figure = go.Figure()
+    graph_style = {'display': 'none'}
+    sliders_style = {'display': 'none'}
+    function_store = None
+
+    if ctx_triggered in ['step-function-button', 'ramp-function-button']:
+        sliders = [
+            html.Div([
+                html.Label('Gain (K):'),
+                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'K'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag'), style={'width': '100%'})
+            ], style={'margin-bottom': '20px'}),
+            html.Div([
+                html.Label('Magnitude (M):'),
+                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'M'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag'), style={'width': '100%'})
+            ], style={'margin-bottom': '20px'}),
+            html.Div([
+                html.Label('Time Constant (τ):'),
+                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'tau'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag'), style={'width': '100%'})
+            ], style={'margin-bottom': '20px'})
+        ]
+        sliders_style = {'display': 'block'}
+        graph_style = {'display': 'block'}
+
+    if order_store == 'second':
+        sliders.append(
+            html.Div([
+                html.Label('Damping Ratio (ξ):'),
+                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'xi'}, min=0, max=2, step=0.01, value=1, marks={i: str(i) for i in range(3)}, updatemode='drag'), style={'width': '100%'})
+            ], style={'margin-bottom': '20px'})
+        )
 
     if ctx_triggered == 'step-function-button':
-        step_arrow_style = {'display': 'block', 'color': 'white', 'font-size': '20px', 'text-align': 'center', 'margin-bottom': '5px'}
-        last_button = 'step'
+        function_store = 'step'
     elif ctx_triggered == 'ramp-function-button':
-        ramp_arrow_style = {'display': 'block', 'color': 'white', 'font-size': '20px', 'text-align': 'center', 'margin-bottom': '5px'}
-        last_button = 'ramp'
-    elif ctx_triggered == 'reset-button':
-        step_arrow_style = {'display': 'none', 'color': 'white', 'font-size': '20px'}
-        ramp_arrow_style = {'display': 'none', 'color': 'white', 'font-size': '20px'}
-        last_button = ''
+        function_store = 'ramp'
 
-    if last_order == 'second':
-        ramp_disabled = True
-
-    return step_arrow_style, ramp_arrow_style, last_button, ramp_disabled
+    return sliders, sliders_style, figure, graph_style, function_store
 
 @callback(
-    Output('K-display', 'children'),
-    Output('tau-display', 'children'),
-    Output('M-display', 'children'),
-    Output('zeta-display', 'children'),
-    Input('input-K', 'value'),
-    Input('input-tau', 'value'),
-    Input('input-M', 'value'),
-    Input('input-zeta', 'value')
+    Output('graph-output', 'figure', allow_duplicate=True),
+    [Input({'type': 'slider', 'name': ALL}, 'value')],
+    [State('order-store', 'data'),
+     State('function-store', 'data')],
+    prevent_initial_call=True
 )
-def update_slider_values(K, tau, M, zeta):
-    return f'{K:.1f}', f'{tau:.1f}', f'{M:.1f}', f'{zeta:.1f}'
+def update_graph(slider_values, order_store, function_store):
+    K = slider_values[0]
+    M = slider_values[1]
+    tau = slider_values[2]
+    xi = slider_values[3] if len(slider_values) > 3 else None
 
-@callback(
-    [Output('graph-output', 'figure'),
-     Output('graph-output', 'style'),
-     Output('sliders-container', 'style'),
-     Output('axes-limits-store', 'data'),
-     Output('lock-axes', 'style')],
-    [Input('generate-graph-button', 'n_clicks'),
-     Input('input-K', 'value'),
-     Input('input-tau', 'value'),
-     Input('input-M', 'value'),
-     Input('input-zeta', 'value'),
-     Input('lock-axes', 'value')],
-    [State('last-button-store', 'data'),
-     State('last-order-store', 'data'),
-     State('axes-limits-store', 'data')]
-)
-def generate_graph(n_clicks, K, tau, M, zeta, lock_axes, last_button, last_order, axes_limits):
-    if not n_clicks:
-        return go.Figure(), {'display': 'none'}, {'display': 'none'}, axes_limits, {'display': 'none'}
+    t = np.linspace(0, 5 * tau, 100)
+    y = np.zeros_like(t)
+    y_input = np.zeros_like(t)
+    title = ''
 
-    if 'lock' in lock_axes:
-        x_range = axes_limits['x']
-        y_range = axes_limits['y']
-    else:
-        x_range = [0, 5 * tau]
-        y_range = [0, K * M * 1.1]
-        axes_limits = {'x': x_range, 'y': y_range}
-
-    t = np.linspace(x_range[0], x_range[1], 100)
-    y = np.zeros_like(t)  # Default value for y
-    title = 'System Response'
-
-    if last_button == 'step':
-        if last_order == 'first':
-            y = K * M * (1 - np.exp(-t / tau))
-            title = 'First Order Step Function Response'
-        elif last_order == 'second':
-            y = K * M * (1 - (1 + t / tau) * np.exp(-zeta * t / tau))
-            title = 'Second Order Step Function Response'
+    if order_store == 'first' and function_store == 'step':
+        y = K * M * (1 - np.exp(-t / tau))
         y_input = np.full_like(t, M)
-    elif last_button == 'ramp' and last_order == 'first':
+        title = 'First Order Step Function Response'
+    elif order_store == 'first' and function_store == 'ramp':
         y = K * M * (np.exp(-t / tau) - 1) + K * M * t
         y_input = M * t
         title = 'First Order Ramp Function Response'
-    else:
-        return go.Figure(), {'display': 'none'}, {'display': 'none'}, axes_limits, {'display': 'none'}
+    elif order_store == 'second' and function_store == 'step':
+        y = K * M * (1 - (1 + t / tau) * np.exp(-xi * t / tau))
+        y_input = np.full_like(t, M)
+        title = 'Second Order Step Function Response'
 
     figure = go.Figure()
     figure.add_trace(go.Scatter(x=t, y=y, mode='lines', name='System Response', line=dict(color='yellow')))
@@ -210,19 +148,17 @@ def generate_graph(n_clicks, K, tau, M, zeta, lock_axes, last_button, last_order
             ticklen=5,
             tickwidth=2,
             tickcolor='white',
-            gridcolor='rgba(0,0,0,0)',
-            range=x_range
+            gridcolor='rgba(0,0,0,0)'
         ),
         yaxis=dict(
-            title='Response / Input',
+            title='Response',
             title_font=dict(size=24, family='Merriweather Sans', color='white'),
             tickfont=dict(size=18, family='Merriweather Sans', color='white'),
             ticks='outside',
             ticklen=5,
             tickwidth=2,
             tickcolor='white',
-            gridcolor='rgba(0,0,0,0)',
-            range=y_range
+            gridcolor='rgba(0,0,0,0)'
         ),
         legend=dict(
             orientation='h',
@@ -239,4 +175,4 @@ def generate_graph(n_clicks, K, tau, M, zeta, lock_axes, last_button, last_order
         height=500
     )
 
-    return figure, {'display': 'block'}, {'display': 'block'}, axes_limits, {'display': 'block'}
+    return figure
