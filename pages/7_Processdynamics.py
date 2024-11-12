@@ -14,8 +14,8 @@ layout = html.Div([
     html.Div(id='function-buttons', style={'text-align': 'left', 'margin-bottom': '20px'}),
     
     html.Div([
-        html.Div(id='sliders-container', style={'display': 'none', 'float': 'left', 'width': '30%'}),
-        dcc.Graph(id='graph-output', style={'display': 'none', 'float': 'right', 'width': '65%'})
+        html.Div(id='sliders-container', style={'display': 'none', 'float': 'left', 'width': '20%'}),
+        dcc.Graph(id='graph-output', style={'display': 'none', 'float': 'right', 'width': '75%'})
     ], style={'display': 'flex'}),
     
     dcc.Store(id='order-store'),
@@ -71,16 +71,16 @@ def update_graph_and_sliders(step_function_clicks, ramp_function_clicks, order_s
         sliders = [
             html.Div([
                 html.Label('Gain (K):'),
-                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'K'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag'), style={'width': '100%'})
-            ], style={'margin-bottom': '20px'}),
+                dcc.Slider(id={'type': 'slider', 'name': 'K'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag')
+            ], style={'margin-bottom': '10px'}),
             html.Div([
                 html.Label('Magnitude (M):'),
-                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'M'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag'), style={'width': '100%'})
-            ], style={'margin-bottom': '20px'}),
+                dcc.Slider(id={'type': 'slider', 'name': 'M'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag')
+            ], style={'margin-bottom': '10px'}),
             html.Div([
                 html.Label('Time Constant (τ):'),
-                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'tau'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag'), style={'width': '100%'})
-            ], style={'margin-bottom': '20px'})
+                dcc.Slider(id={'type': 'slider', 'name': 'tau'}, min=0, max=10, step=0.1, value=1, marks={i: str(i) for i in range(11)}, updatemode='drag')
+            ], style={'margin-bottom': '10px'})
         ]
         sliders_style = {'display': 'block'}
         graph_style = {'display': 'block'}
@@ -88,9 +88,9 @@ def update_graph_and_sliders(step_function_clicks, ramp_function_clicks, order_s
     if order_store == 'second':
         sliders.append(
             html.Div([
-                html.Label('Damping Ratio (ξ):'),
-                html.Div(dcc.Slider(id={'type': 'slider', 'name': 'xi'}, min=0, max=2, step=0.01, value=1, marks={i: str(i) for i in range(3)}, updatemode='drag'), style={'width': '100%'})
-            ], style={'margin-bottom': '20px'})
+                html.Label('Damping Ratio (ζ):'),
+                dcc.Slider(id={'type': 'slider', 'name': 'zeta'}, min=0, max=2, step=0.01, value=1, marks={i: str(i) for i in range(3)}, updatemode='drag')
+            ], style={'margin-bottom': '10px'})
         )
 
     if ctx_triggered == 'step-function-button':
@@ -111,7 +111,7 @@ def update_graph(slider_values, order_store, function_store):
     K = slider_values[0]
     M = slider_values[1]
     tau = slider_values[2]
-    xi = slider_values[3] if len(slider_values) > 3 else None
+    zeta = slider_values[3] if len(slider_values) > 3 else None
 
     t = np.linspace(0, 5 * tau, 100)
     y = np.zeros_like(t)
@@ -122,19 +122,26 @@ def update_graph(slider_values, order_store, function_store):
         y = K * M * (1 - np.exp(-t / tau))
         y_input = np.full_like(t, M)
         title = 'First Order Step Function Response'
+        y_limit = 1.1 * max(K * M, M)
     elif order_store == 'first' and function_store == 'ramp':
         y = K * M * (np.exp(-t / tau) - 1) + K * M * t
         y_input = M * t
         title = 'First Order Ramp Function Response'
+        y_limit = None  # No specific y-limit condition provided for ramp
     elif order_store == 'second' and function_store == 'step':
-        y = K * M * (1 - (1 + t / tau) * np.exp(-xi * t / tau))
+        if zeta < 1:
+            t = np.linspace(0, 10 * tau, 200)  # Extend the time range for better visibility of oscillations
+            y = 1 - np.exp(-zeta * t / tau) * (np.cos(np.sqrt(1 - zeta**2) * t / tau) + (zeta / np.sqrt(1 - zeta**2)) * np.sin(np.sqrt(1 - zeta**2) * t / tau))
+        else:
+            y = K * M * (1 - (1 + t / tau) * np.exp(-zeta * t / tau))
         y_input = np.full_like(t, M)
         title = 'Second Order Step Function Response'
+        y_limit = None  # No specific y-limit condition provided for second order
 
     figure = go.Figure()
     figure.add_trace(go.Scatter(x=t, y=y, mode='lines', name='System Response', line=dict(color='yellow')))
     figure.add_trace(go.Scatter(x=t, y=y_input, mode='lines', name='Input', line=dict(color='red', dash='dot')))
-    figure.update_layout(
+    layout = dict(
         title=dict(
             text=title,
             x=0.5,
@@ -151,7 +158,7 @@ def update_graph(slider_values, order_store, function_store):
             gridcolor='rgba(0,0,0,0)'
         ),
         yaxis=dict(
-            title='Response',
+            title='Response/Input',
             title_font=dict(size=24, family='Merriweather Sans', color='white'),
             tickfont=dict(size=18, family='Merriweather Sans', color='white'),
             ticks='outside',
@@ -174,5 +181,10 @@ def update_graph(slider_values, order_store, function_store):
         width=500,
         height=500
     )
+
+    if y_limit is not None:
+        layout['yaxis']['range'] = [0, y_limit]
+
+    figure.update_layout(layout)
 
     return figure
