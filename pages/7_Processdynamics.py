@@ -14,12 +14,20 @@ layout = html.Div([
     html.Div(id='function-buttons', style={'text-align': 'left', 'margin-bottom': '20px'}),
     
     html.Div([
-        html.Div(id='sliders-container', style={'display': 'none', 'float': 'left', 'width': '20%'}),
-        dcc.Graph(id='graph-output', style={'display': 'none', 'float': 'right', 'width': '75%'})
+        html.Div(id='sliders-container', style={'display': 'none', 'float': 'left', 'width': '25%'}),  # Increased width to 25%
+        dcc.Graph(id='graph-output', style={'display': 'none', 'float': 'right', 'width': '70%'})  # Decreased width to 70%
     ], style={'display': 'flex'}),
     
     dcc.Store(id='order-store'),
-    dcc.Store(id='function-store')
+    dcc.Store(id='function-store'),
+    dcc.Store(id='axes-limits-store', data={'x': None, 'y': None}),  # Store for axes limits
+    
+    dcc.Checklist(
+        id='lock-axes',
+        options=[{'label': 'Lock Axes', 'value': 'lock'}],
+        value=[],
+        style={'margin-top': '10px'}
+    )
 ])
 
 @callback(
@@ -51,7 +59,6 @@ def display_function_buttons(first_order_clicks, second_order_clicks, order_stor
 @callback(
     [Output('sliders-container', 'children'),
      Output('sliders-container', 'style'),
-     Output('graph-output', 'figure', allow_duplicate=True),
      Output('graph-output', 'style'),
      Output('function-store', 'data')],
     [Input('step-function-button', 'n_clicks'),
@@ -59,12 +66,11 @@ def display_function_buttons(first_order_clicks, second_order_clicks, order_stor
     [State('order-store', 'data')],
     prevent_initial_call=True
 )
-def update_graph_and_sliders(step_function_clicks, ramp_function_clicks, order_store):
+def update_sliders_visibility(step_function_clicks, ramp_function_clicks, order_store):
     ctx_triggered = ctx.triggered_id
     sliders = []
-    figure = go.Figure()
-    graph_style = {'display': 'none'}
     sliders_style = {'display': 'none'}
+    graph_style = {'display': 'none'}
     function_store = None
 
     if ctx_triggered in ['step-function-button', 'ramp-function-button']:
@@ -83,7 +89,7 @@ def update_graph_and_sliders(step_function_clicks, ramp_function_clicks, order_s
             ], style={'margin-bottom': '10px'})
         ]
         sliders_style = {'display': 'block'}
-        graph_style = {'display': 'block'}
+        graph_style = {'display': 'block'}  # Make the graph visible when function buttons are clicked
 
     if order_store == 'second':
         sliders.append(
@@ -98,19 +104,27 @@ def update_graph_and_sliders(step_function_clicks, ramp_function_clicks, order_s
     elif ctx_triggered == 'ramp-function-button':
         function_store = 'ramp'
 
-    return sliders, sliders_style, figure, graph_style, function_store
+    return sliders, sliders_style, graph_style, function_store
 
 @callback(
-    Output('graph-output', 'figure', allow_duplicate=True),
-    [Input({'type': 'slider', 'name': ALL}, 'value')],
+    [Output('graph-output', 'figure', allow_duplicate=True),
+     Output('axes-limits-store', 'data', allow_duplicate=True)],
+    [Input({'type': 'slider', 'name': ALL}, 'value'),
+     Input('lock-axes', 'value')],
     [State('order-store', 'data'),
-     State('function-store', 'data')],
+     State('function-store', 'data'),
+     State('axes-limits-store', 'data')],
     prevent_initial_call=True
 )
-def update_graph(slider_values, order_store, function_store):
-    K = slider_values[0]
-    M = slider_values[1]
-    tau = slider_values[2]
+def update_graph(slider_values, lock_axes, order_store, function_store, axes_limits):
+    # Ensure that slider_values contains expected values; if not, assign default values
+    if len(slider_values) < 3:
+        return go.Figure(), axes_limits  # Return a default figure if sliders are not ready
+
+    # Assign values from sliders, using default values if sliders are not populated
+    K = slider_values[0] if len(slider_values) > 0 else 1
+    M = slider_values[1] if len(slider_values) > 1 else 1
+    tau = slider_values[2] if len(slider_values) > 2 else 1
     zeta = slider_values[3] if len(slider_values) > 3 else None
 
     t = np.linspace(0, 5 * tau, 100)
@@ -129,10 +143,10 @@ def update_graph(slider_values, order_store, function_store):
         title = 'First Order Ramp Function Response'
         y_limit = None  # No specific y-limit condition provided for ramp
     elif order_store == 'second' and function_store == 'step':
-        if zeta < 1:
+        if zeta is not None and zeta < 1:
             t = np.linspace(0, 10 * tau, 200)  # Extend the time range for better visibility of oscillations
-            y = 1 - np.exp(-zeta * t / tau) * (np.cos(np.sqrt(1 - zeta**2) * t / tau) + (zeta / np.sqrt(1 - zeta**2)) * np.sin(np.sqrt(1 - zeta**2) * t / tau))
-        else:
+            y = K * M * (1 - np.exp(-zeta * t / tau) * (np.cos(np.sqrt(1 - zeta**2) * t / tau) + (zeta / np.sqrt(1 - zeta**2)) * np.sin(np.sqrt(1 - zeta**2) * t / tau)))
+        elif zeta is not None:
             y = K * M * (1 - (1 + t / tau) * np.exp(-zeta * t / tau))
         y_input = np.full_like(t, M)
         title = 'Second Order Step Function Response'
@@ -182,9 +196,19 @@ def update_graph(slider_values, order_store, function_store):
         height=500
     )
 
-    if y_limit is not None:
-        layout['yaxis']['range'] = [0, y_limit]
+    # Apply or update axes limits based on lock-axes selection
+    if 'lock' in lock_axes:
+        if axes_limits['x'] is not None and axes_limits['y'] is not None:
+            layout['xaxis']['range'] = axes_limits['x']
+            layout['yaxis']['range'] = axes_limits['y']
+    else:
+        x_range = [0, 5 * tau]
+        y_range = [0, y_limit] if y_limit is not None else [min(y) * 1.1, max(y) * 1.1]
+        layout['xaxis']['range'] = x_range
+        layout['yaxis']['range'] = y_range
+        axes_limits = {'x': x_range, 'y': y_range}  # Update store with the new axes limits
 
     figure.update_layout(layout)
 
-    return figure
+    # Return the figure and updated axes limits separately
+    return figure, axes_limits
