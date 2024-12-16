@@ -12,9 +12,11 @@ def scrape_menu():
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    menu_section = soup.find('div', id='dinner-body')
-
-    tbody = menu_section.find('tbody')
+    try:
+        menu_section = soup.find('div', id='dinner-body')
+        tbody = menu_section.find('tbody')
+    except AttributeError:
+        return None  # Return None if the menu section or tbody is not found
 
     # Extract text content from each <tr> element for the next 5 days
     menu_items = [[] for _ in range(5)]
@@ -58,8 +60,8 @@ layout = html.Div([
 )
 def update_menu(n_intervals):
     menu_items = scrape_menu()
-    if isinstance(menu_items, str):  # Check if an error message was returned
-        return menu_items, "Error"
+    if menu_items is None:  # Check if an error message was returned
+        return [html.Div("No menu this week", style={'font-size': '20px', 'color': 'red'})], "Portola Dining Dinner Menu"
 
     # Get today's date in PST
     pst = pytz.timezone('America/Los_Angeles')
