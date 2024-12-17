@@ -28,12 +28,12 @@ layout = html.Div([
     
     html.Div([
         dcc.Graph(id='graph-output', style={'display': 'block', 'width': '100%', 'height': '100vh'})  # Graph width set to 100% of its container
-    ], style={'width': '60%', 'display': 'inline-block', 'vertical-align': 'top', 'padding': '10px'}),  # Allows the graph container to expand to fill remaining space
+    ], style={'width': '50%', 'display': 'inline-block', 'vertical-align': 'top', 'padding': '10px'}),  # Allows the graph container to expand to fill remaining space
 
-    html.Div(id='metrics-output', style={'margin-left': '10px', 'color': 'white', 'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),  # Div for displaying metrics
+    html.Div(id='metrics-output', style={'margin-left': '2px', 'color': 'white', 'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center'}),  # Div for displaying metrics
     dcc.Store(id='order-store', data='first'),  # Set initial order to 'first'
     dcc.Store(id='function-store', data='step'),  # Set initial function to 'step'
-    dcc.Store(id='axes-limits-store', data={'x': None, 'y': None})  # Store for axes limits
+    dcc.Store(id='axes-limits-store', data={'x': None, 'y': None})  # Store for axes limits    
 ], style={'display': 'flex', 'width': '100%'})  # Set the main container to use flexbox and take up 100% width
 
 @callback(
@@ -117,16 +117,23 @@ def update_sliders(step_function_clicks, ramp_function_clicks, order_store, func
 @callback(
     [Output('K-display', 'children'),
      Output('M-display', 'children'),
-     Output('tau-display', 'children'),
-     Output('zeta-display', 'children')],
+     Output('tau-display', 'children')],
     [Input({'type': 'slider', 'name': 'K'}, 'value'),
      Input({'type': 'slider', 'name': 'M'}, 'value'),
-     Input({'type': 'slider', 'name': 'tau'}, 'value'),
-     Input({'type': 'slider', 'name': 'zeta'}, 'value')],
-    prevent_initial_call=True
+     Input({'type': 'slider', 'name': 'tau'}, 'value')]
 )
-def update_slider_values(K, M, tau, zeta):
-    return f'{K:.1f}', f'{M:.1f}', f'{tau:.1f}', f'{zeta:.2f}'
+def update_slider_values(K, M, tau):
+    return f'{K:.1f}', f'{M:.1f}', f'{tau:.1f}'
+
+@callback(
+    Output('zeta-display', 'children'),
+    [Input({'type': 'slider', 'name': 'zeta'}, 'value'),
+     Input('order-store', 'data')]
+)
+def update_slider_values_zeta(zeta, order_store):
+    if order_store == 'second':
+        return [f'{zeta:.2f}']
+    return [dash.no_update]
 
 @callback(
     [Output('graph-output', 'figure', allow_duplicate=True),
@@ -149,6 +156,10 @@ def update_graph(slider_values, lock_axes, order_store, function_store, axes_lim
     M = slider_values[1] if len(slider_values) > 1 else 1
     tau = slider_values[2] if len(slider_values) > 2 else 1
     zeta = slider_values[3] if len(slider_values) > 3 else None
+
+    # Ensure zeta is set to None if not provided
+    if len(slider_values) < 4:
+        zeta = None
 
     # Determine the time range based on whether axes are locked
     if 'lock' in lock_axes and axes_limits['x'] is not None:
@@ -247,15 +258,18 @@ def update_graph(slider_values, lock_axes, order_store, function_store, axes_lim
     figure.update_layout(layout)
 
     # Create metrics text with line breaks
-    metrics_text = [
-        html.Div(f"Peak Time: {peak_time:.2f}" if isinstance(peak_time, (int, float)) else "Peak Time: N/A"),
-        html.Br(),
-        html.Div(f"Overshoot: {overshoot:.2f}" if isinstance(overshoot, (int, float)) else "Overshoot: N/A"),
-        html.Br(),
-        html.Div(f"Oscillation Period: {oscillation_period:.2f}" if isinstance(oscillation_period, (int, float)) else "Oscillation Period: N/A"),
-        html.Br(),
-        html.Div(f"Decay Ratio: {decay_ratio:.2f}" if isinstance(decay_ratio, (int, float)) else "Decay Ratio: N/A")
-    ]
+    if order_store == 'second':
+        metrics_text = [
+            html.Div(f"Peak Time: {peak_time:.2f}" if isinstance(peak_time, (int, float)) else "Peak Time: N/A"),
+            html.Br(),
+            html.Div(f"Overshoot: {overshoot:.2f}" if isinstance(overshoot, (int, float)) else "Overshoot: N/A"),
+            html.Br(),
+            html.Div(f"Oscillation Period: {oscillation_period:.2f}" if isinstance(oscillation_period, (int, float)) else "Oscillation Period: N/A"),
+            html.Br(),
+            html.Div(f"Decay Ratio: {decay_ratio:.2f}" if isinstance(decay_ratio, (int, float)) else "Decay Ratio: N/A")
+        ]
+    else:
+        metrics_text = []
 
     # Return the figure, updated axes limits, and metrics text
     return figure, axes_limits, metrics_text
