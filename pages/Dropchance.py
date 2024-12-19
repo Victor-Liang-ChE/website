@@ -31,7 +31,7 @@ layout = html.Div([
         ),
     ], style={'margin-bottom': '20px', 'margin-left': '20px', 'margin-right': '20px'}),
     html.Div([
-        html.Label("Desired Drops:"),
+        html.Label("Desired Number of Drops:"),
         html.Span(id='desired-drops-display', style={'margin-left': '10px'}),
         dcc.Slider(
             id='desired-drops-slider',
@@ -67,7 +67,7 @@ clientside_callback(
     function(percent, attempts, desired_drops, desired_drops_range, toggle_state) {
         const percent_display = `${percent}%`;
         const attempts_display = `${attempts}`;
-        const desired_drops_display = `${desired_drops}`;
+        const desired_drops_display = `at least ${desired_drops}`;
         const desired_drops_range_display = `${desired_drops_range[0]} to ${desired_drops_range[1]}`;
         let result;
 
