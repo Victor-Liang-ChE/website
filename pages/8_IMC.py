@@ -1,4 +1,4 @@
-from dash import html, dcc, Input, Output, callback
+from dash import html, dcc, Input, Output, callback, ALL
 from dash.exceptions import PreventUpdate
 import dash
 import numpy as np
@@ -99,7 +99,8 @@ layout = html.Div([
                 'color': 'black'
             }
         ),
-    ], style={'width': '30%', 'padding': '10px', 'display': 'inline-block', 'vertical-align': 'top'}),  # Left container with dropdown menu
+        html.Div(id='sliders-container')  # Container for sliders
+    ], style={'width': '30%', 'padding': '10px', 'display': 'inline-block', 'vertical-align': 'top'}),  # Left container with dropdown menu and sliders
     
     html.Div([
         dcc.Markdown(id='model-expression', style={'margin-bottom': '10px', 'color': 'white'}, mathjax=True),
@@ -119,25 +120,32 @@ layout = html.Div([
      Output('model-tauI', 'children'),
      Output('model-tauD', 'children'),
      Output('response-graph', 'figure'),
-     Output('response-graph', 'style')],  # Update the style for visibility
-    [Input('model-dropdown', 'value')]
+     Output('response-graph', 'style')],
+    [Input('model-dropdown', 'value'),
+     Input({'type': 'slider', 'index': ALL}, 'value')]
 )
-def display_model_details(selected_model):
+def display_model_details(selected_model, slider_values):
     if selected_model is None:
         # Hide the graph if no model is selected
         return [None, None, None, None, go.Figure(), {'display': 'none'}]
 
     # Retrieve model information
     model_info = model_parameters[selected_model]
-    
-    # Set arbitrary values for K, tau, tauc, etc. for simulation
-    K = 1  # Process gain
-    tau = 3  # Time constant
-    tauc = tau / 3  # Closed-loop time constant
-    tau1, tau2, tau3, theta, zeta, beta = 2, 1, 0.5, 0.2, 0.7, 0.1  # Arbitrary additional parameters for some models
 
-    # Dynamically pass arguments based on the required parameters for each lambda function
-    required_args = locals()
+    # Extract slider values and provide defaults for missing parameters
+    slider_ids = ['tau', 'tau1', 'tau2', 'tau3', 'beta', 'K', 'zeta', 'theta', 'tauc']
+    slider_values_dict = {slider_ids[i]: slider_values[i] for i in range(len(slider_values))}
+
+    # Add default values for any missing sliders
+    defaults = {
+        'tau': 3, 'tau1': 2, 'tau2': 1, 'tau3': 0.5, 'beta': 0.1,
+        'K': 1, 'zeta': 0.7, 'theta': 0.2, 'tauc': 1  # Default closed-loop time constant
+    }
+    for key, value in defaults.items():
+        slider_values_dict.setdefault(key, value)
+
+    # Ensure all required arguments are present
+    required_args = {**slider_values_dict}
 
     def get_args(func):
         return {arg: required_args[arg] for arg in func.__code__.co_varnames if arg in required_args}
@@ -147,12 +155,11 @@ def display_model_details(selected_model):
     tauI_args = get_args(model_info['tauI'])
     tauD_args = get_args(model_info['tauD'])
 
-    # Calculate PID parameters
     Kc = model_info['Kc'](**Kc_args)
     tauI = model_info['tauI'](**tauI_args)
     tauD = model_info['tauD'](**tauD_args)
 
-    # Simulate system response
+    # Generate system transfer function and compute step response
     system_args = get_args(model_info['system'])
     system = model_info['system'](**system_args)
     t, y = step(system, T=np.linspace(0, 20, 200))
@@ -166,11 +173,11 @@ def display_model_details(selected_model):
         xaxis_title="Time",
         yaxis_title="Output",
         legend_title="Legend",
-        template="plotly_dark",  # Use a dark theme
-        plot_bgcolor="#010131",  # Match website background
-        paper_bgcolor="#010131",  # Match website background
-        xaxis_showgrid=False,  # Remove grid
-        yaxis_showgrid=False   # Remove grid
+        template="plotly_dark",
+        plot_bgcolor="#010131",
+        paper_bgcolor="#010131",
+        xaxis_showgrid=False,
+        yaxis_showgrid=False
     )
 
     # Show the graph with updated styles
@@ -180,5 +187,92 @@ def display_model_details(selected_model):
         f"$\\tau_{{I}}:$ {tauI:.3f}",
         f"$\\tau_{{D}}:$ {tauD:.3f}",
         figure,
-        {'display': 'block'}  # Make the graph visible
+        {'display': 'block'}
     ]
+
+@callback(
+    [Output('sliders-container', 'children', allow_duplicate=True)],
+    [Input('model-dropdown', 'value')],
+    prevent_initial_call=True
+)
+def update_sliders(selected_model):
+    if selected_model is None:
+        raise PreventUpdate
+
+    model_info = model_parameters[selected_model]
+    sliders = []
+
+    if 'tau' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Tau:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'tau'},
+                min=0.1, max=10, step=0.1, value=3,
+                updatemode='drag'
+            )
+        ]))
+    if 'tau1' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Tau1:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'tau1'},
+                min=0.1, max=10, step=0.1, value=2,
+                updatemode='drag'
+            )
+        ]))
+    if 'tau2' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Tau2:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'tau2'},
+                min=0.1, max=10, step=0.1, value=1,
+                updatemode='drag'
+            )
+        ]))
+    if 'tau3' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Tau3:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'tau3'},
+                min=0.1, max=10, step=0.1, value=0.5,
+                updatemode='drag'
+            )
+        ]))
+    if 'beta' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Beta:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'beta'},
+                min=0.1, max=10, step=0.1, value=0.1,
+                updatemode='drag'
+            )
+        ]))
+    if 'K' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('K:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'K'},
+                min=0.1, max=10, step=0.1, value=1,
+                updatemode='drag'
+            )
+        ]))
+    if 'zeta' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Zeta:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'zeta'},
+                min=0.1, max=2, step=0.1, value=0.7,
+                updatemode='drag'
+            )
+        ]))
+    if 'theta' in model_info['Kc'].__code__.co_varnames:
+        sliders.append(html.Div([
+            html.Label('Theta:'),
+            dcc.Slider(
+                id={'type': 'slider', 'index': 'theta'},
+                min=0.1, max=10, step=0.1, value=0.2,
+                updatemode='drag'
+            )
+        ]))
+
+    return [sliders]
