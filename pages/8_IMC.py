@@ -3,6 +3,7 @@ from dash.exceptions import PreventUpdate
 import dash
 import numpy as np
 import plotly.graph_objs as go
+from dash import callback_context as ctx
 from scipy.signal import lti, step
 
 dash.register_page(__name__, path='/PIDTuning', name="PID Tuning")
@@ -28,7 +29,7 @@ model_parameters = {
                                   "Kc": lambda K, tau, zeta, beta, tauc: (2 * zeta * tau) / (K * (tauc + beta)), 
                                   "tauI": lambda tau, zeta: 2 * zeta * tau, 
                                   "tauD": lambda tau, zeta: tau / (2 * zeta),
-                                  "system": lambda K, tau, zeta, beta: lti([K, -K*beta], [tau**2, 2*zeta*tau, 1])},
+                                  "system": lambda K, tau, zeta, beta: lti([-K*beta, K], [tau**2, 2*zeta*tau, 1])},
     "Integrator": {"expression": r'$\frac{K}{s}$', 
                    "Kc": lambda K, tauc: 2 / (K * tauc), 
                    "tauI": lambda tauc: 2 * tauc, 
@@ -43,12 +44,12 @@ model_parameters = {
                                "Kc": lambda K, tau, theta, tauc: tau / (K * (tauc + theta)),
                                "tauI": lambda tau: tau,
                                "tauD": lambda: 0,
-                               "system": lambda K, tau, theta: lti([K], [tau, 1])},  # Approximate delay with Taylor series
+                               "system": lambda K, theta: lti([-K*theta, K], [1, 1])},  # Approximate delay with Taylor series
     "FOPTD (Padé Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{\tau s + 1}$', 
                              "Kc": lambda K, tau, theta, tauc: (tau + theta / 2) / (K * (tauc + theta / 2)), 
                              "tauI": lambda tau, theta: tau + theta / 2, 
                              "tauD": lambda tau, theta: tau * theta / (2 * tau + theta),
-                             "system": lambda K, tau, theta: lti([K, -K*theta/2], [tau, 1, theta/2])},  # Approximate delay with Padé approximation
+                             "system": lambda K, tau, theta: lti([-K*theta/2, K], [tau*theta/2, tau+theta/2, 1])},  # Approximate delay with Padé approximation
     "SOPTD (Overdamped, Stable Zero)": {"expression": r'$\frac{K(\tau_{3}s+1)e^{-\theta s}}{(\tau_{1}s+1)(\tau_{2}s+1)}$', 
                                         "Kc": lambda K, tau1, tau2, tau3, theta, tauc: (tau1 + tau2 - tau3) / (K * (tauc + theta)), 
                                         "tauI": lambda tau1, tau2, tau3: tau1 + tau2 - tau3, 
@@ -114,6 +115,8 @@ layout = html.Div([
     ], style={'width': '60%', 'padding': '10px', 'display': 'inline-block', 'vertical-align': 'top', 'text-align': 'center'})  # Right container for graph
 ], style={'display': 'flex', 'width': '100%'})  # Set the main container to use flexbox and take up 100% width
 
+from dash.exceptions import PreventUpdate
+
 @callback(
     [Output('model-expression', 'children'),
      Output('model-Kc', 'children'),
@@ -122,7 +125,8 @@ layout = html.Div([
      Output('response-graph', 'figure'),
      Output('response-graph', 'style')],
     [Input('model-dropdown', 'value'),
-     Input({'type': 'slider', 'index': ALL}, 'value')]
+     Input({'type': 'slider', 'index': ALL}, 'value')],
+    prevent_initial_call=True
 )
 def display_model_details(selected_model, slider_values):
     if selected_model is None:
@@ -132,42 +136,53 @@ def display_model_details(selected_model, slider_values):
     # Retrieve model information
     model_info = model_parameters[selected_model]
 
-    # Extract slider values and provide defaults for missing parameters
-    slider_ids = ['tau', 'tau1', 'tau2', 'tau3', 'beta', 'K', 'zeta', 'theta', 'tauc']
+    # Extract dynamically generated slider IDs
+    slider_ids = [param for param in model_info['system'].__code__.co_varnames] + ['tauc']
+
+    # Map slider values to their respective IDs
     slider_values_dict = {slider_ids[i]: slider_values[i] for i in range(len(slider_values))}
 
-    # Add default values for any missing sliders
-    defaults = {
-        'tau': 3, 'tau1': 2, 'tau2': 1, 'tau3': 0.5, 'beta': 0.1,
-        'K': 1, 'zeta': 0.7, 'theta': 0.2, 'tauc': 1  # Default closed-loop time constant
-    }
-    for key, value in defaults.items():
-        slider_values_dict.setdefault(key, value)
+    # Debug mapping to verify correctness
+    print("Slider Mapping:", slider_values_dict)
 
     # Ensure all required arguments are present
     required_args = {**slider_values_dict}
 
     def get_args(func):
+        """Extract arguments required by the function from slider_values_dict."""
         return {arg: required_args[arg] for arg in func.__code__.co_varnames if arg in required_args}
 
     # Extract arguments for each parameter calculation
-    Kc_args = get_args(model_info['Kc'])
-    tauI_args = get_args(model_info['tauI'])
-    tauD_args = get_args(model_info['tauD'])
+    try:
+        Kc_args = get_args(model_info['Kc'])
+        tauI_args = get_args(model_info['tauI'])
+        tauD_args = get_args(model_info['tauD'])
+    except KeyError as e:
+        raise ValueError(f"Missing parameter {e} in slider_values_dict: {slider_values_dict}")
 
+    # Compute PID parameters
     Kc = model_info['Kc'](**Kc_args)
     tauI = model_info['tauI'](**tauI_args)
     tauD = model_info['tauD'](**tauD_args)
 
-    # Generate system transfer function and compute step response
+    # Generate system transfer function
     system_args = get_args(model_info['system'])
     system = model_info['system'](**system_args)
-    t, y = step(system, T=np.linspace(0, 20, 200))
+
+    # Simulate the system with step response
+    t = np.linspace(0, 30, 200)
+    u = np.ones_like(t)  # Default step input signal
+
+    # Apply time delay only if the model includes `theta`
+    if 'theta' in system_args:
+        u = apply_time_delay(t, u, system_args['theta'])
+
+    t, y = step(system, T=t)
 
     # Create the response graph
     figure = go.Figure()
     figure.add_trace(go.Scatter(x=t, y=y, mode='lines', name='Output'))
-    figure.add_trace(go.Scatter(x=t, y=[1] * len(t), mode='lines', name='Set Point', line=dict(dash='dash')))
+    figure.add_trace(go.Scatter(x=t, y=u, mode='lines', name='Input', line=dict(dash='dash')))
     figure.update_layout(
         title=f"System Response for {selected_model}",
         xaxis_title="Time",
@@ -180,7 +195,6 @@ def display_model_details(selected_model, slider_values):
         yaxis_showgrid=False
     )
 
-    # Show the graph with updated styles
     return [
         f"Model: {model_info['expression']}",
         f"$K_{{c}}:$ {Kc:.3f}",
@@ -202,77 +216,46 @@ def update_sliders(selected_model):
     model_info = model_parameters[selected_model]
     sliders = []
 
-    if 'tau' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Tau:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'tau'},
-                min=0.1, max=10, step=0.1, value=3,
-                updatemode='drag'
-            )
-        ]))
-    if 'tau1' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Tau1:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'tau1'},
-                min=0.1, max=10, step=0.1, value=2,
-                updatemode='drag'
-            )
-        ]))
-    if 'tau2' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Tau2:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'tau2'},
-                min=0.1, max=10, step=0.1, value=1,
-                updatemode='drag'
-            )
-        ]))
-    if 'tau3' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Tau3:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'tau3'},
-                min=0.1, max=10, step=0.1, value=0.5,
-                updatemode='drag'
-            )
-        ]))
-    if 'beta' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Beta:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'beta'},
-                min=0.1, max=10, step=0.1, value=0.1,
-                updatemode='drag'
-            )
-        ]))
-    if 'K' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('K:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'K'},
-                min=0.1, max=10, step=0.1, value=1,
-                updatemode='drag'
-            )
-        ]))
-    if 'zeta' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Zeta:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'zeta'},
-                min=0.1, max=2, step=0.1, value=0.7,
-                updatemode='drag'
-            )
-        ]))
-    if 'theta' in model_info['Kc'].__code__.co_varnames:
-        sliders.append(html.Div([
-            html.Label('Theta:'),
-            dcc.Slider(
-                id={'type': 'slider', 'index': 'theta'},
-                min=0.1, max=10, step=0.1, value=0.2,
-                updatemode='drag'
-            )
-        ]))
+    # Define min, max, and step values for each parameter
+    slider_limits = {
+        'K': {'min': 1, 'max': 10, 'step': 1},
+        'tau': {'min': 1, 'max': 10, 'step': 1},
+        'tau1': {'min': 1, 'max': 10, 'step': 1},
+        'tau2': {'min': 1, 'max': 10, 'step': 1},
+        'zeta': {'min': 0.1, 'max': 2, 'step': 0.1},
+        'tau3': {'min': 1, 'max': 10, 'step': 1},
+        'beta': {'min': 1, 'max': 10, 'step': 1},
+        'theta': {'min': 1, 'max': 10, 'step': 1},
+        'tauc': {'min': 1, 'max': 10, 'step': 1}
+    }
+
+    default_values = {
+        'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0.7, 'tau3': 0.5, 'beta': 0.1,
+        'theta': 0.2, 'tauc': 1
+    }
+
+    for param in slider_limits:
+        if param in model_info['system'].__code__.co_varnames or param == 'tauc':
+            sliders.append(html.Div([
+                html.Label(f'{param.capitalize()}:'),
+                dcc.Slider(
+                    id={'type': 'slider', 'index': param},
+                    min=slider_limits[param]['min'],
+                    max=slider_limits[param]['max'],
+                    step=slider_limits[param]['step'],
+                    value=default_values[param],
+                    updatemode='drag'  # Ensure dynamic updates
+                )
+            ]))
 
     return [sliders]
+
+def apply_time_delay(time, signal, theta):
+    """
+    Apply a time delay of theta to the input signal.
+    """
+    delayed_signal = np.zeros_like(signal)
+    delay_steps = int(theta / (time[1] - time[0]))  # Calculate steps corresponding to the delay
+    if delay_steps < len(signal):
+        delayed_signal[delay_steps:] = signal[:-delay_steps]
+    return delayed_signal
