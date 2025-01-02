@@ -9,6 +9,8 @@ from scipy.signal import lti, step
 dash.register_page(__name__, path='/PIDTuning', name="PID Tuning")
 
 # Dictionary to store the associated values for each model
+epsilon = 1e-9  # Small value to prevent division by zero
+
 model_parameters = {
     "1st Order": {"expression": r'$\frac{K}{\tau s + 1}$', 
                   "Kc": lambda K, tau, tauc: tau / (K * tauc), 
@@ -23,12 +25,12 @@ model_parameters = {
     "2nd Order (General)": {"expression": r'$\frac{K}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
                             "Kc": lambda K, tau, zeta, tauc: (2 * zeta * tau) / (K * tauc), 
                             "tauI": lambda tau, zeta: 2 * zeta * tau, 
-                            "tauD": lambda tau, zeta: tau / (2 * zeta),
+                            "tauD": lambda tau, zeta: tau / (2 * zeta + epsilon),
                             "system": lambda K, tau, zeta: lti([K], [tau**2, 2*zeta*tau, 1])},
     "2nd Order (Unstable Zero)": {"expression": r'$\frac{K(-\beta s + 1)}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
                                   "Kc": lambda K, tau, zeta, beta, tauc: (2 * zeta * tau) / (K * (tauc + beta)), 
                                   "tauI": lambda tau, zeta: 2 * zeta * tau, 
-                                  "tauD": lambda tau, zeta: tau / (2 * zeta),
+                                  "tauD": lambda tau, zeta: tau / (2 * zeta + epsilon),
                                   "system": lambda K, tau, zeta, beta: lti([-K*beta, K], [tau**2, 2*zeta*tau, 1])},
     "Integrator": {"expression": r'$\frac{K}{s}$', 
                    "Kc": lambda K, tauc: 2 / (K * tauc), 
@@ -53,22 +55,22 @@ model_parameters = {
     "SOPTD (Overdamped, Stable Zero)": {"expression": r'$\frac{K(\tau_{3}s+1)e^{-\theta s}}{(\tau_{1}s+1)(\tau_{2}s+1)}$', 
                                         "Kc": lambda K, tau1, tau2, tau3, theta, tauc: (tau1 + tau2 - tau3) / (K * (tauc + theta)), 
                                         "tauI": lambda tau1, tau2, tau3: tau1 + tau2 - tau3, 
-                                        "tauD": lambda tau1, tau2, tau3: (tau1 * tau2 - (tau1 + tau2 - tau3) * tau3) / (tau1 + tau2 - tau3),
+                                        "tauD": lambda tau1, tau2, tau3: (tau1 * tau2 - (tau1 + tau2 - tau3) * tau3) / (tau1 + tau2 - tau3 + epsilon),
                                         "system": lambda K, tau1, tau2, tau3, theta: lti([K*tau3, K], [tau1*tau2, tau1+tau2, 1])},  # Approximate delay with Taylor series
     "SOPTD (General, Stable Zero)": {"expression": r'$\frac{K(\tau_{3}s+1)e^{-\theta s}}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
                                      "Kc": lambda K, tau, zeta, tau3, theta, tauc: (2 * zeta * tau - tau3) / (K * (tauc + theta)), 
                                      "tauI": lambda tau, zeta, tau3: 2 * zeta * tau - tau3, 
-                                     "tauD": lambda tau, tau3, zeta: (tau**2 - (2 * zeta * tau - tau3) * tau3) / (2 * zeta * tau - tau3),
+                                     "tauD": lambda tau, tau3, zeta: (tau**2 - (2 * zeta * tau - tau3) * tau3) / (2 * zeta * tau - tau3 + epsilon),
                                      "system": lambda K, tau, zeta, tau3, theta: lti([K*tau3, K], [tau**2, 2*zeta*tau, 1])},  # Approximate delay with Taylor series
     "SOPTD (Overdamped, Unstable Zero)": {"expression": r'$\frac{K(-\tau_{3}s+1)e^{-\theta s}}{(\tau_{1}s+1)(\tau_{2}s+1)}$', 
                                           "Kc": lambda K, tau1, tau2, tau3, theta, tauc: (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)) / (K * (tauc + tau3 + theta)), 
                                           "tauI": lambda tau1, tau2, tau3, theta, tauc: (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)), 
-                                          "tauD": lambda tau1, tau2, tau3, theta, tauc: tau3 * theta / (tauc + tau3 + theta) + tau1 * tau2 / (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)),
+                                          "tauD": lambda tau1, tau2, tau3, theta, tauc: tau3 * theta / (tauc + tau3 + theta) + tau1 * tau2 / (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta) + epsilon),
                                           "system": lambda K, tau1, tau2, tau3, theta: lti([-K*tau3, K], [tau1*tau2, tau1+tau2, 1])},  # Approximate delay with Taylor series
     "SOPTD (General, Unstable Zero)": {"expression": r'$\frac{K(-\tau_{3}s+1)e^{-\theta s}}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
                                        "Kc": lambda K, tau, zeta, tau3, theta, tauc: (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)) / (K * (tauc + tau3 + theta)), 
                                        "tauI": lambda tau, zeta, tau3, theta, tauc: (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)), 
-                                       "tauD": lambda tau, zeta, tau3, theta, tauc: tau3 * theta / (tauc + tau3 + theta) + tau**2 / (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)),
+                                       "tauD": lambda tau, zeta, tau3, theta, tauc: tau3 * theta / (tauc + tau3 + theta) + tau**2 / (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta) + epsilon),
                                        "system": lambda K, tau, zeta, tau3, theta: lti([-K*tau3, K], [tau**2, 2*zeta*tau, 1])},  # Approximate delay with Taylor series
     "Integrator with Delay (Taylor Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{s}$', 
                                                "Kc": lambda K, tauc, theta: (2 * tauc + theta) / (K * (tauc + theta)**2), 
@@ -86,6 +88,8 @@ model_parameters = {
                                             "tauD": lambda tau, tauc, theta: (2 * tauc + theta) * tau / (2 * tauc + tau + theta),
                                             "system": lambda K, tau, theta: lti([K], [tau, 1, 0])}  # Approximate delay with Taylor series
 }
+
+# The rest of your code remains unchanged
 
 layout = html.Div([
     html.Div([
@@ -114,8 +118,6 @@ layout = html.Div([
         dcc.Graph(id='response-graph', style={'display': 'none'}),  # Graph for system response
     ], style={'width': '60%', 'padding': '10px', 'display': 'inline-block', 'vertical-align': 'top', 'text-align': 'center'})  # Right container for graph
 ], style={'display': 'flex', 'width': '100%'})  # Set the main container to use flexbox and take up 100% width
-
-from dash.exceptions import PreventUpdate
 
 @callback(
     [Output('model-expression', 'children'),
@@ -164,14 +166,13 @@ def display_model_details(selected_model, slider_values):
     tauD_args = get_args(model_info['tauD'])
     system_args = get_args(model_info['system'])
 
-    # Debugging statements
-    print("System Args:", system_args)
-    print("Slider Values Dict:", slider_values_dict)
-
     # Compute PID parameters
     Kc = model_info['Kc'](**Kc_args)
     tauI = model_info['tauI'](**tauI_args)
     tauD = model_info['tauD'](**tauD_args)
+
+    # Check if tauD is greater than 10,000,000 and set to infinity if true
+    tauD_display = "∞" if tauD > 10000000 else f"{tauD:.3f}"
 
     # Generate system transfer function
     system = model_info['system'](**system_args)
@@ -213,7 +214,7 @@ def display_model_details(selected_model, slider_values):
         f"Model: {model_info['expression']}",
         f"$K_{{c}}:$ {Kc:.3f}",
         f"$\\tau_{{I}}:$ {tauI:.3f}",
-        f"$\\tau_{{D}}:$ {tauD:.3f}",
+        f"$\\tau_{{D}}:$ {tauD_display}",
         figure,
         {'display': 'block'}
     ]
@@ -230,109 +231,172 @@ def update_sliders(selected_model):
     model_info = model_parameters[selected_model]
     sliders = []
 
-    # Slider limits and default values
+    # Define min, max, and step values for each parameter
     slider_limits = {
         'K': {'min': 1, 'max': 10, 'step': 1},
         'tau': {'min': 1, 'max': 10, 'step': 1},
         'tau1': {'min': 1, 'max': 10, 'step': 1},
         'tau2': {'min': 1, 'max': 10, 'step': 1},
-        'zeta': {'min': 0.1, 'max': 2, 'step': 0.1},
+        'zeta': {'min': 0, 'max': 2, 'step': 0.1, 'marks': {0: '0', 0.5: '0.5', 1: '1', 1.5: '1.5', 2: '2'}},
         'tau3': {'min': 1, 'max': 10, 'step': 1},
         'beta': {'min': 1, 'max': 10, 'step': 1},
         'theta': {'min': 1, 'max': 10, 'step': 1},
         'tauc': {'min': 1, 'max': 10, 'step': 1}
     }
 
+    # Parameter display names with proper symbols
+    param_labels = {
+        'K': 'K',
+        'tau': 'τ',
+        'tau1': 'τ₁',
+        'tau2': 'τ₂',
+        'zeta': 'ζ',
+        'tau3': 'τ₃',
+        'beta': 'β',
+        'theta': 'θ',
+        'tauc': 'τc'
+    }
+
     default_values = {
-        'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0.7, 'tau3': 0.5, 'beta': 0.1,
+        'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0, 'tau3': 0.5, 'beta': 0.1,
         'theta': 1, 'tauc': 1
     }
 
-    # Create the K slider with display
-    sliders.append(html.Div([
-        html.Label('K:', style={'margin-right': '10px', 'color': 'white'}),
-        html.Span(id='K-display', style={'margin-right': '10px', 'color': 'white'}),
-        dcc.Slider(
-            id={'type': 'slider', 'index': 'K'},
-            min=slider_limits['K']['min'],
-            max=slider_limits['K']['max'],
-            step=slider_limits['K']['step'],
-            value=default_values['K'],
-            updatemode='drag',
-            marks={i: str(i) for i in range(slider_limits['K']['min'], slider_limits['K']['max'] + 1)}
-        )
-    ], style={'margin-bottom': '20px'}))
-
-    # Create the tau slider with display
-    sliders.append(html.Div([
-        html.Label('Tau:', style={'margin-right': '10px', 'color': 'white'}),
-        html.Span(id='tau-display', style={'margin-right': '10px', 'color': 'white'}),
-        dcc.Slider(
-            id={'type': 'slider', 'index': 'tau'},
-            min=slider_limits['tau']['min'],
-            max=slider_limits['tau']['max'],
-            step=slider_limits['tau']['step'],
-            value=default_values['tau'],
-            updatemode='drag',
-            marks={i: str(i) for i in range(slider_limits['tau']['min'], slider_limits['tau']['max'] + 1)}
-        )
-    ], style={'margin-bottom': '20px'}))
-
-    # Create the theta slider with display
-    sliders.append(html.Div([
-        html.Label('Theta:', style={'margin-right': '10px', 'color': 'white'}),
-        html.Span(id='theta-display', style={'margin-right': '10px', 'color': 'white'}),
-        dcc.Slider(
-            id={'type': 'slider', 'index': 'theta'},
-            min=slider_limits['theta']['min'],
-            max=slider_limits['theta']['max'],
-            step=slider_limits['theta']['step'],
-            value=default_values['theta'],
-            updatemode='drag',
-            marks={i: str(i) for i in range(slider_limits['theta']['min'], slider_limits['theta']['max'] + 1)}
-        )
-    ], style={'margin-bottom': '20px'}))
-
-    # Create other sliders with display
-    for param in ['tau1', 'tau2', 'zeta', 'tau3', 'beta', 'tauc']:
+    for param in slider_limits:
         if param in model_info['system'].__code__.co_varnames or param == 'tauc':
-            sliders.append(html.Div([
-                html.Label(f'{param.capitalize()}:', style={'margin-right': '10px', 'color': 'white'}),
-                html.Span(id=f'{param}-display', style={'margin-right': '10px', 'color': 'white'}),
-                dcc.Slider(
-                    id={'type': 'slider', 'index': param},
-                    min=slider_limits[param]['min'],
-                    max=slider_limits[param]['max'],
-                    step=slider_limits[param]['step'],
-                    value=default_values[param],
-                    updatemode='drag',
-                    marks={i: str(i) for i in range(slider_limits[param]['min'], slider_limits[param]['max'] + 1)}
-                )
-            ], style={'margin-bottom': '20px'}))
+            label = param_labels[param]
 
-    return [html.Div(sliders)]
+            slider = dcc.Slider(
+                id={'type': 'slider', 'index': param},
+                min=slider_limits[param]['min'],
+                max=slider_limits[param]['max'],
+                step=slider_limits[param]['step'],
+                value=default_values[param],
+                updatemode='drag'  # Ensure dynamic updates
+            )
+
+            # Add custom marks for zeta slider
+            if param == 'zeta':
+                slider.marks = slider_limits[param]['marks']
+
+            sliders.append(html.Div([
+                html.Div([
+                    dcc.Markdown(f'{label}:', style={'margin-right': '10px'}, mathjax=True),
+                    dcc.Markdown(f"{default_values[param]:.1f}", id=f'{param}-display', style={'margin-right': '10px'}, mathjax=True)
+                ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '2px'}),
+                html.Div([
+                    slider
+                ], style={'margin-bottom': '2px'})
+            ]))
+
+    return [sliders]
+
+# Add clientside callback for K slider display
+clientside_callback(
+    """
+    function(K) {
+        console.log('K:', K);
+        return `${K.toFixed(1)}`;
+    }
+    """,
+    Output('K-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'K'}, 'value'),
+    prevent_initial_call=True
+)
 
 clientside_callback(
     """
-    function(K, tau, theta) {
-        if (typeof K === 'undefined') {
-            return ["0.00", "0.00", "0.00"];
-        }
-        if (typeof tau === 'undefined') {
-            return ["0.00", "0.00", "0.00"];
-        }
-        if (typeof theta === 'undefined') {
-            return ["0.00", "0.00", "0.00"];
-        }
-        return [`${K.toFixed(2)}`, `${tau.toFixed(2)}`, `${theta.toFixed(2)}`];
+    function(tau) {
+        console.log('tau:', tau);
+        return `${tau.toFixed(1)}`;
     }
     """,
-    [Output('K-display', 'children', allow_duplicate=True),
-     Output('tau-display', 'children', allow_duplicate=True),
-     Output('theta-display', 'children', allow_duplicate=True)],
-    [Input({'type': 'slider', 'index': 'K'}, 'value'),
-     Input({'type': 'slider', 'index': 'tau'}, 'value'),
-     Input({'type': 'slider', 'index': 'theta'}, 'value')],
+    Output('tau-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'tau'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(theta) {
+        console.log('theta:', theta);
+        return `${theta.toFixed(1)}`;
+    }
+    """,
+    Output('theta-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'theta'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(tau1) {
+        console.log('tau1:', tau1);
+        return `${tau1.toFixed(1)}`;
+    }
+    """,
+    Output('tau1-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'tau1'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(tau2) {
+        console.log('tau2:', tau2);
+        return `${tau2.toFixed(1)}`;
+    }
+    """,
+    Output('tau2-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'tau2'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(beta) {
+        console.log('beta:', beta);
+        return `${beta.toFixed(1)}`;
+    }
+    """,
+    Output('beta-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'beta'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(tauc) {
+        console.log('tauc:', tauc);
+        return `${tauc.toFixed(1)}`;
+    }
+    """,
+    Output('tauc-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'tauc'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(zeta) {
+        console.log('zeta:', zeta);
+        return `${zeta.toFixed(1)}`;
+    }
+    """,
+    Output('zeta-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'zeta'}, 'value'),
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(tau3) {
+        console.log('tau3:', tau3);
+        return `${tau3.toFixed(1)}`;
+    }
+    """,
+    Output('tau3-display', 'children', allow_duplicate=True),
+    Input({'type': 'slider', 'index': 'tau3'}, 'value'),
     prevent_initial_call=True
 )
 
