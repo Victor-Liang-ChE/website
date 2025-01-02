@@ -139,6 +139,15 @@ def display_model_details(selected_model, slider_values):
     # Extract dynamically generated slider IDs
     slider_ids = [param for param in model_info['system'].__code__.co_varnames] + ['tauc']
 
+    # Ensure slider_values and slider_ids match
+    if len(slider_values) != len(slider_ids):
+        # Assign default values if sliders haven't been initialized
+        default_values = {
+            'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0.7, 'tau3': 0.5, 'beta': 0.1,
+            'theta': 0.2, 'tauc': 1
+        }
+        slider_values = [default_values[param] for param in slider_ids]
+
     # Map slider values to their respective IDs
     slider_values_dict = {slider_ids[i]: slider_values[i] for i in range(len(slider_values))}
 
@@ -157,6 +166,7 @@ def display_model_details(selected_model, slider_values):
         Kc_args = get_args(model_info['Kc'])
         tauI_args = get_args(model_info['tauI'])
         tauD_args = get_args(model_info['tauD'])
+        system_args = get_args(model_info['system'])
     except KeyError as e:
         raise ValueError(f"Missing parameter {e} in slider_values_dict: {slider_values_dict}")
 
@@ -166,7 +176,6 @@ def display_model_details(selected_model, slider_values):
     tauD = model_info['tauD'](**tauD_args)
 
     # Generate system transfer function
-    system_args = get_args(model_info['system'])
     system = model_info['system'](**system_args)
 
     # Simulate the system with step response
