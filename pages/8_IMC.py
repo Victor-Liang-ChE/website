@@ -44,7 +44,7 @@ model_parameters = {
                                "Kc": lambda K, tau, theta, tauc: tau / (K * (tauc + theta)),
                                "tauI": lambda tau: tau,
                                "tauD": lambda: 0,
-                               "system": lambda K, theta: lti([-K*theta, K], [1, 1])},  # Approximate delay with Taylor series
+                               "system": lambda K, tau, theta: lti([-K*theta, K], [tau, 1])},  # Approximate delay with Taylor series
     "FOPTD (Padé Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{\tau s + 1}$', 
                              "Kc": lambda K, tau, theta, tauc: (tau + theta / 2) / (K * (tauc + theta / 2)), 
                              "tauI": lambda tau, theta: tau + theta / 2, 
@@ -74,12 +74,12 @@ model_parameters = {
                                                "Kc": lambda K, tauc, theta: (2 * tauc + theta) / (K * (tauc + theta)**2), 
                                                "tauI": lambda tauc, theta: 2 * tauc + theta, 
                                                "tauD": lambda: 0,
-                                               "system": lambda K, theta: lti([K], [1, 0])},  # Approximate delay with Taylor series
+                                               "system": lambda K, theta: lti([-K*theta, K], [1, 0])},  # Approximate delay with Taylor series
     "Integrator with Delay (Padé Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{s}$', 
                                              "Kc": lambda K, tauc, theta: (2 * tauc + theta) / (K * (tauc + theta / 2)**2), 
                                              "tauI": lambda tauc, theta: 2 * tauc + theta,
                                              "tauD": lambda tauc, theta: (tauc * theta + theta**2 / 4) / (2 * tauc + theta),
-                                             "system": lambda K, theta: lti([K, -K*theta/2], [1, theta/2, 0])},  # Approximate delay with Padé approximation
+                                             "system": lambda K, theta: lti([-K*theta/2, K], [K*theta/2, K, 0])},  # Approximate delay with Padé approximation
     "1st Order with Integrator and Delay": {"expression": r'$\frac{Ke^{-\theta s}}{s(\tau s + 1)}$', 
                                             "Kc": lambda K, tau, tauc, theta: (2 * tauc + tau + theta) / (K * (tauc + theta)**2), 
                                             "tauI": lambda tau, tauc, theta: 2 * tauc + tau + theta, 
@@ -151,9 +151,6 @@ def display_model_details(selected_model, slider_values):
     # Map slider values to their respective IDs
     slider_values_dict = {slider_ids[i]: slider_values[i] for i in range(len(slider_values))}
 
-    # Debug mapping to verify correctness
-    print("Slider Mapping:", slider_values_dict)
-
     # Ensure all required arguments are present
     required_args = {**slider_values_dict}
 
@@ -162,13 +159,14 @@ def display_model_details(selected_model, slider_values):
         return {arg: required_args[arg] for arg in func.__code__.co_varnames if arg in required_args}
 
     # Extract arguments for each parameter calculation
-    try:
-        Kc_args = get_args(model_info['Kc'])
-        tauI_args = get_args(model_info['tauI'])
-        tauD_args = get_args(model_info['tauD'])
-        system_args = get_args(model_info['system'])
-    except KeyError as e:
-        raise ValueError(f"Missing parameter {e} in slider_values_dict: {slider_values_dict}")
+    Kc_args = get_args(model_info['Kc'])
+    tauI_args = get_args(model_info['tauI'])
+    tauD_args = get_args(model_info['tauD'])
+    system_args = get_args(model_info['system'])
+
+    # Debugging statements
+    print("System Args:", system_args)
+    print("Slider Values Dict:", slider_values_dict)
 
     # Compute PID parameters
     Kc = model_info['Kc'](**Kc_args)
@@ -182,8 +180,15 @@ def display_model_details(selected_model, slider_values):
     t = np.linspace(0, 30, 200)
     u = np.ones_like(t)  # Default step input signal
 
-    # Apply time delay only if the model includes `theta`
-    if 'theta' in system_args:
+    # Apply time delay only to specific models
+    models_with_delay = [
+        "SOPTD (Overdamped, Stable Zero)",
+        "SOPTD (General, Stable Zero)",
+        "SOPTD (Overdamped, Unstable Zero)",
+        "SOPTD (General, Unstable Zero)",
+        "1st Order with Integrator and Delay"
+    ]
+    if selected_model in models_with_delay and 'theta' in system_args:
         u = apply_time_delay(t, u, system_args['theta'])
 
     t, y = step(system, T=t)
