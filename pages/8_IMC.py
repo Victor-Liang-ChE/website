@@ -1,4 +1,4 @@
-from dash import html, dcc, Input, Output, callback, ALL
+from dash import html, dcc, Input, Output, callback, ALL, clientside_callback
 from dash.exceptions import PreventUpdate
 import dash
 import numpy as np
@@ -230,7 +230,7 @@ def update_sliders(selected_model):
     model_info = model_parameters[selected_model]
     sliders = []
 
-    # Define min, max, and step values for each parameter
+    # Slider limits and default values
     slider_limits = {
         'K': {'min': 1, 'max': 10, 'step': 1},
         'tau': {'min': 1, 'max': 10, 'step': 1},
@@ -245,24 +245,96 @@ def update_sliders(selected_model):
 
     default_values = {
         'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0.7, 'tau3': 0.5, 'beta': 0.1,
-        'theta': 0.2, 'tauc': 1
+        'theta': 1, 'tauc': 1
     }
 
-    for param in slider_limits:
+    # Create the K slider with display
+    sliders.append(html.Div([
+        html.Label('K:', style={'margin-right': '10px', 'color': 'white'}),
+        html.Span(id='K-display', style={'margin-right': '10px', 'color': 'white'}),
+        dcc.Slider(
+            id={'type': 'slider', 'index': 'K'},
+            min=slider_limits['K']['min'],
+            max=slider_limits['K']['max'],
+            step=slider_limits['K']['step'],
+            value=default_values['K'],
+            updatemode='drag',
+            marks={i: str(i) for i in range(slider_limits['K']['min'], slider_limits['K']['max'] + 1)}
+        )
+    ], style={'margin-bottom': '20px'}))
+
+    # Create the tau slider with display
+    sliders.append(html.Div([
+        html.Label('Tau:', style={'margin-right': '10px', 'color': 'white'}),
+        html.Span(id='tau-display', style={'margin-right': '10px', 'color': 'white'}),
+        dcc.Slider(
+            id={'type': 'slider', 'index': 'tau'},
+            min=slider_limits['tau']['min'],
+            max=slider_limits['tau']['max'],
+            step=slider_limits['tau']['step'],
+            value=default_values['tau'],
+            updatemode='drag',
+            marks={i: str(i) for i in range(slider_limits['tau']['min'], slider_limits['tau']['max'] + 1)}
+        )
+    ], style={'margin-bottom': '20px'}))
+
+    # Create the theta slider with display
+    sliders.append(html.Div([
+        html.Label('Theta:', style={'margin-right': '10px', 'color': 'white'}),
+        html.Span(id='theta-display', style={'margin-right': '10px', 'color': 'white'}),
+        dcc.Slider(
+            id={'type': 'slider', 'index': 'theta'},
+            min=slider_limits['theta']['min'],
+            max=slider_limits['theta']['max'],
+            step=slider_limits['theta']['step'],
+            value=default_values['theta'],
+            updatemode='drag',
+            marks={i: str(i) for i in range(slider_limits['theta']['min'], slider_limits['theta']['max'] + 1)}
+        )
+    ], style={'margin-bottom': '20px'}))
+
+    # Create other sliders with display
+    for param in ['tau1', 'tau2', 'zeta', 'tau3', 'beta', 'tauc']:
         if param in model_info['system'].__code__.co_varnames or param == 'tauc':
             sliders.append(html.Div([
-                html.Label(f'{param.capitalize()}:'),
+                html.Label(f'{param.capitalize()}:', style={'margin-right': '10px', 'color': 'white'}),
+                html.Span(id=f'{param}-display', style={'margin-right': '10px', 'color': 'white'}),
                 dcc.Slider(
                     id={'type': 'slider', 'index': param},
                     min=slider_limits[param]['min'],
                     max=slider_limits[param]['max'],
                     step=slider_limits[param]['step'],
                     value=default_values[param],
-                    updatemode='drag'  # Ensure dynamic updates
+                    updatemode='drag',
+                    marks={i: str(i) for i in range(slider_limits[param]['min'], slider_limits[param]['max'] + 1)}
                 )
-            ]))
+            ], style={'margin-bottom': '20px'}))
 
-    return [sliders]
+    return [html.Div(sliders)]
+
+clientside_callback(
+    """
+    function(K, tau, theta) {
+        if (typeof K === 'undefined') {
+            return ["0.00", "0.00", "0.00"];
+        }
+        if (typeof tau === 'undefined') {
+            return ["0.00", "0.00", "0.00"];
+        }
+        if (typeof theta === 'undefined') {
+            return ["0.00", "0.00", "0.00"];
+        }
+        return [`${K.toFixed(2)}`, `${tau.toFixed(2)}`, `${theta.toFixed(2)}`];
+    }
+    """,
+    [Output('K-display', 'children', allow_duplicate=True),
+     Output('tau-display', 'children', allow_duplicate=True),
+     Output('theta-display', 'children', allow_duplicate=True)],
+    [Input({'type': 'slider', 'index': 'K'}, 'value'),
+     Input({'type': 'slider', 'index': 'tau'}, 'value'),
+     Input({'type': 'slider', 'index': 'theta'}, 'value')],
+    prevent_initial_call=True
+)
 
 def apply_time_delay(time, signal, theta):
     """
