@@ -219,6 +219,7 @@ def display_model_details(selected_model, slider_values):
         {'display': 'block'}
     ]
 
+# Update the update_sliders function to use the updated param_labels
 @callback(
     [Output('sliders-container', 'children', allow_duplicate=True)],
     [Input('model-dropdown', 'value')],
@@ -244,22 +245,22 @@ def update_sliders(selected_model):
         'tauc': {'min': 1, 'max': 10, 'step': 1}
     }
 
+    default_values = {
+        'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0, 'tau3': 0.5, 'beta': 0.1,
+        'theta': 1, 'tauc': 1
+    }
+
     # Parameter display names with proper symbols
     param_labels = {
         'K': 'K',
         'tau': 'τ',
-        'tau1': 'τ₁',
-        'tau2': 'τ₂',
+        'tau1': 'τ_{1}',
+        'tau2': 'τ_{2}',
         'zeta': 'ζ',
         'tau3': 'τ₃',
         'beta': 'β',
         'theta': 'θ',
-        'tauc': 'τc'
-    }
-
-    default_values = {
-        'K': 1, 'tau': 3, 'tau1': 2, 'tau2': 1, 'zeta': 0, 'tau3': 0.5, 'beta': 0.1,
-        'theta': 1, 'tauc': 1
+        'tauc': 'τ_{c}'
     }
 
     for param in slider_limits:
@@ -281,7 +282,7 @@ def update_sliders(selected_model):
 
             sliders.append(html.Div([
                 html.Div([
-                    dcc.Markdown(f'{label}:', style={'margin-right': '10px'}, mathjax=True),
+                    dcc.Markdown(f'${label}$:', style={'margin-right': '10px'}, mathjax=True),
                     dcc.Markdown(f"{default_values[param]:.1f}", id=f'{param}-display', style={'margin-right': '10px'}, mathjax=True)
                 ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '2px'}),
                 html.Div([
