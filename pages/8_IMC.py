@@ -13,84 +13,38 @@ epsilon = 1e-9  # Small value to prevent division by zero
 
 model_parameters = {
     "1st Order": {"expression": r'$\frac{K}{\tau s + 1}$', 
-                  "Kc": lambda K, tau, tauc: tau / (K * tauc), 
-                  "tauI": lambda tau: tau, 
-                  "tauD": lambda: 0,
                   "system": lambda K, tau: lti([K], [tau, 1])},
     "2nd Order (Overdamped)": {"expression": r'$\frac{K}{(\tau_{1}s+1)(\tau_{2}s+1)}$', 
-                               "Kc": lambda K, tau1, tau2, tauc: (tau1 + tau2) / (K * tauc), 
-                               "tauI": lambda tau1, tau2: tau1 + tau2, 
-                               "tauD": lambda tau1, tau2: (tau1 * tau2) / (tau1 + tau2),
                                "system": lambda K, tau1, tau2: lti([K], [tau1 * tau2, tau1 + tau2, 1])},
     "2nd Order (General)": {"expression": r'$\frac{K}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
-                            "Kc": lambda K, tau, zeta, tauc: (2 * zeta * tau) / (K * tauc), 
-                            "tauI": lambda tau, zeta: 2 * zeta * tau, 
-                            "tauD": lambda tau, zeta: tau / (2 * zeta + epsilon),
                             "system": lambda K, tau, zeta: lti([K], [tau**2, 2*zeta*tau, 1])},
     "2nd Order (Unstable Zero)": {"expression": r'$\frac{K(-\beta s + 1)}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
-                                  "Kc": lambda K, tau, zeta, beta, tauc: (2 * zeta * tau) / (K * (tauc + beta)), 
-                                  "tauI": lambda tau, zeta: 2 * zeta * tau, 
-                                  "tauD": lambda tau, zeta: tau / (2 * zeta + epsilon),
                                   "system": lambda K, tau, zeta, beta: lti([-K*beta, K], [tau**2, 2*zeta*tau, 1])},
     "Integrator": {"expression": r'$\frac{K}{s}$', 
-                   "Kc": lambda K, tauc: 2 / (K * tauc), 
-                   "tauI": lambda tauc: 2 * tauc, 
-                   "tauD": lambda: 0,
                    "system": lambda K: lti([K], [1, 0])},
     "1st Order with Integrator": {"expression": r'$\frac{K}{s(\tau s + 1)}$', 
-                                  "Kc": lambda K, tau, tauc: (2 * tau + tauc) / (K * tauc**2), 
-                                  "tauI": lambda tau, tauc: (2 * tauc + tau), 
-                                  "tauD": lambda tau, tauc: 2 * tauc * tau / (2 * tauc + tau),
                                   "system": lambda K, tau: lti([K], [tau, 1, 0])},
     "FOPTD (Taylor Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{\tau s + 1}$', 
-                               "Kc": lambda K, tau, theta, tauc: tau / (K * (tauc + theta)),
-                               "tauI": lambda tau: tau,
-                               "tauD": lambda: 0,
                                "system": lambda K, tau, theta: lti([-K*theta, K], [tau, 1])},  # Approximate delay with Taylor series
     "FOPTD (Padé Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{\tau s + 1}$', 
-                             "Kc": lambda K, tau, theta, tauc: (tau + theta / 2) / (K * (tauc + theta / 2)), 
-                             "tauI": lambda tau, theta: tau + theta / 2, 
-                             "tauD": lambda tau, theta: tau * theta / (2 * tau + theta),
                              "system": lambda K, tau, theta: lti([-K*theta/2, K], [tau*theta/2, tau+theta/2, 1])},  # Approximate delay with Padé approximation
     "SOPTD (Overdamped, Stable Zero)": {"expression": r'$\frac{K(\tau_{3}s+1)e^{-\theta s}}{(\tau_{1}s+1)(\tau_{2}s+1)}$', 
-                                        "Kc": lambda K, tau1, tau2, tau3, theta, tauc: (tau1 + tau2 - tau3) / (K * (tauc + theta)), 
-                                        "tauI": lambda tau1, tau2, tau3: tau1 + tau2 - tau3, 
-                                        "tauD": lambda tau1, tau2, tau3: (tau1 * tau2 - (tau1 + tau2 - tau3) * tau3) / (tau1 + tau2 - tau3 + epsilon),
                                         "system": lambda K, tau1, tau2, tau3, theta: lti([K*tau3, K], [tau1*tau2, tau1+tau2, 1])},  # Approximate delay with Taylor series
     "SOPTD (General, Stable Zero)": {"expression": r'$\frac{K(\tau_{3}s+1)e^{-\theta s}}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
-                                     "Kc": lambda K, tau, zeta, tau3, theta, tauc: (2 * zeta * tau - tau3) / (K * (tauc + theta)), 
-                                     "tauI": lambda tau, zeta, tau3: 2 * zeta * tau - tau3, 
-                                     "tauD": lambda tau, tau3, zeta: (tau**2 - (2 * zeta * tau - tau3) * tau3) / (2 * zeta * tau - tau3 + epsilon),
                                      "system": lambda K, tau, zeta, tau3, theta: lti([K*tau3, K], [tau**2, 2*zeta*tau, 1])},  # Approximate delay with Taylor series
     "SOPTD (Overdamped, Unstable Zero)": {"expression": r'$\frac{K(-\tau_{3}s+1)e^{-\theta s}}{(\tau_{1}s+1)(\tau_{2}s+1)}$', 
-                                          "Kc": lambda K, tau1, tau2, tau3, theta, tauc: (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)) / (K * (tauc + tau3 + theta)), 
-                                          "tauI": lambda tau1, tau2, tau3, theta, tauc: (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)), 
-                                          "tauD": lambda tau1, tau2, tau3, theta, tauc: tau3 * theta / (tauc + tau3 + theta) + tau1 * tau2 / (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta) + epsilon),
                                           "system": lambda K, tau1, tau2, tau3, theta: lti([-K*tau3, K], [tau1*tau2, tau1+tau2, 1])},  # Approximate delay with Taylor series
     "SOPTD (General, Unstable Zero)": {"expression": r'$\frac{K(-\tau_{3}s+1)e^{-\theta s}}{\tau^2 s^2 + 2\zeta\tau s + 1}$', 
-                                       "Kc": lambda K, tau, zeta, tau3, theta, tauc: (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)) / (K * (tauc + tau3 + theta)), 
-                                       "tauI": lambda tau, zeta, tau3, theta, tauc: (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)), 
-                                       "tauD": lambda tau, zeta, tau3, theta, tauc: tau3 * theta / (tauc + tau3 + theta) + tau**2 / (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta) + epsilon),
                                        "system": lambda K, tau, zeta, tau3, theta: lti([-K*tau3, K], [tau**2, 2*zeta*tau, 1])},  # Approximate delay with Taylor series
     "Integrator with Delay (Taylor Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{s}$', 
-                                               "Kc": lambda K, tauc, theta: (2 * tauc + theta) / (K * (tauc + theta)**2), 
-                                               "tauI": lambda tauc, theta: 2 * tauc + theta, 
-                                               "tauD": lambda: 0,
                                                "system": lambda K, theta: lti([-K*theta, K], [1, 0])},  # Approximate delay with Taylor series
     "Integrator with Delay (Padé Approx.)": {"expression": r'$\frac{Ke^{-\theta s}}{s}$', 
-                                             "Kc": lambda K, tauc, theta: (2 * tauc + theta) / (K * (tauc + theta / 2)**2), 
-                                             "tauI": lambda tauc, theta: 2 * tauc + theta,
-                                             "tauD": lambda tauc, theta: (tauc * theta + theta**2 / 4) / (2 * tauc + theta),
                                              "system": lambda K, theta: lti([-K*theta/2, K], [K*theta/2, K, 0])},  # Approximate delay with Padé approximation
     "1st Order with Integrator and Delay": {"expression": r'$\frac{Ke^{-\theta s}}{s(\tau s + 1)}$', 
-                                            "Kc": lambda K, tau, tauc, theta: (2 * tauc + tau + theta) / (K * (tauc + theta)**2), 
-                                            "tauI": lambda tau, tauc, theta: 2 * tauc + tau + theta, 
-                                            "tauD": lambda tau, tauc, theta: (2 * tauc + theta) * tau / (2 * tauc + tau + theta),
                                             "system": lambda K, tau, theta: lti([K], [tau, 1, 0])}  # Approximate delay with Taylor series
 }
 
 # The rest of your code remains unchanged
-
 layout = html.Div([
     html.Div([
         dcc.Dropdown(
@@ -109,9 +63,20 @@ layout = html.Div([
     
     html.Div([
         dcc.Markdown(id='model-expression', style={'margin-bottom': '10px', 'color': 'white'}, mathjax=True),
-        dcc.Markdown(id='model-Kc', style={'margin-bottom': '10px', 'color': 'white'}, mathjax=True),
-        dcc.Markdown(id='model-tauI', style={'margin-bottom': '10px', 'color': 'white'}, mathjax=True),
-        dcc.Markdown(id='model-tauD', style={'margin-bottom': '10px', 'color': 'white'}, mathjax=True)
+        html.Div([
+            html.Div([
+                dcc.Markdown(r'$K_{c}:$', id='label-Kc', style={'margin-bottom': '10px', 'color': 'white', 'display': 'none'}, mathjax=True),
+                dcc.Markdown(id='model-Kc', style={'margin-bottom': '10px', 'color': 'white', 'display': 'none'}, mathjax=True)
+            ], style={'display': 'flex', 'align-items': 'center'}),
+            html.Div([
+                dcc.Markdown(r'$\tau_{I}:$', id='label-tauI', style={'margin-bottom': '10px', 'color': 'white', 'display': 'none'}, mathjax=True),
+                dcc.Markdown(id='model-tauI', style={'margin-bottom': '10px', 'color': 'white', 'display': 'none'}, mathjax=True)
+            ], style={'display': 'flex', 'align-items': 'center'}),
+            html.Div([
+                dcc.Markdown(r'$\tau_{D}:$', id='label-tauD', style={'margin-bottom': '10px', 'color': 'white', 'display': 'none'}, mathjax=True),
+                dcc.Markdown(id='model-tauD', style={'margin-bottom': '10px', 'color': 'white', 'display': 'none'}, mathjax=True)
+            ], style={'display': 'flex', 'align-items': 'center'})
+        ], style={'display': 'flex', 'flex-direction': 'column', 'align-items': 'center'})
     ], style={'margin-left': '2px', 'display': 'flex', 'flex-direction': 'column', 'justify-content': 'center', 'text-align': 'center'}),  # Div for displaying model details
 
     html.Div([
@@ -121,9 +86,6 @@ layout = html.Div([
 
 @callback(
     [Output('model-expression', 'children'),
-     Output('model-Kc', 'children'),
-     Output('model-tauI', 'children'),
-     Output('model-tauD', 'children'),
      Output('response-graph', 'figure'),
      Output('response-graph', 'style')],
     [Input('model-dropdown', 'value'),
@@ -133,7 +95,7 @@ layout = html.Div([
 def display_model_details(selected_model, slider_values):
     if selected_model is None:
         # Hide the graph if no model is selected
-        return [None, None, None, None, go.Figure(), {'display': 'none'}]
+        return [None, go.Figure(), {'display': 'none'}]
 
     # Retrieve model information
     model_info = model_parameters[selected_model]
@@ -161,18 +123,7 @@ def display_model_details(selected_model, slider_values):
         return {arg: required_args[arg] for arg in func.__code__.co_varnames if arg in required_args}
 
     # Extract arguments for each parameter calculation
-    Kc_args = get_args(model_info['Kc'])
-    tauI_args = get_args(model_info['tauI'])
-    tauD_args = get_args(model_info['tauD'])
     system_args = get_args(model_info['system'])
-
-    # Compute PID parameters
-    Kc = model_info['Kc'](**Kc_args)
-    tauI = model_info['tauI'](**tauI_args)
-    tauD = model_info['tauD'](**tauD_args)
-
-    # Check if tauD is greater than 10,000,000 and set to infinity if true
-    tauD_display = "∞" if tauD > 10000000 else f"{tauD:.3f}"
 
     # Generate system transfer function
     system = model_info['system'](**system_args)
@@ -212,12 +163,119 @@ def display_model_details(selected_model, slider_values):
 
     return [
         f"Model: {model_info['expression']}",
-        f"$K_{{c}}:$ {Kc:.3f}",
-        f"$\\tau_{{I}}:$ {tauI:.3f}",
-        f"$\\tau_{{D}}:$ {tauD_display}",
         figure,
         {'display': 'block'}
     ]
+
+# Add clientside callback for computing PID parameters and updating the display
+clientside_callback(
+    """
+    function(selected_model, slider_values) {
+        const model_parameters = {
+            "1st Order": {
+                "Kc": (K, tau, tauc) => tau / (K * tauc),
+                "tauI": (tau) => tau,
+                "tauD": () => 0
+            },
+            "2nd Order (Overdamped)": {
+                "Kc": (K, tau1, tau2, tauc) => (tau1 + tau2) / (K * tauc),
+                "tauI": (tau1, tau2) => tau1 + tau2,
+                "tauD": (tau1, tau2) => (tau1 * tau2) / (tau1 + tau2)
+            },
+            "2nd Order (General)": {
+                "Kc": (K, tau, zeta, tauc) => (2 * zeta * tau) / (K * tauc),
+                "tauI": (tau, zeta) => 2 * zeta * tau,
+                "tauD": (tau, zeta) => tau / (2 * zeta + 1e-9)
+            },
+            "2nd Order (Unstable Zero)": {
+                "Kc": (K, tau, zeta, beta, tauc) => (2 * zeta * tau) / (K * (tauc + beta)),
+                "tauI": (tau, zeta) => 2 * zeta * tau,
+                "tauD": (tau, zeta) => tau / (2 * zeta + 1e-9)
+            },
+            "Integrator": {
+                "Kc": (K, tauc) => 2 / (K * tauc),
+                "tauI": (tauc) => 2 * tauc,
+                "tauD": () => 0
+            },
+            "1st Order with Integrator": {
+                "Kc": (K, tau, tauc) => (2 * tau + tauc) / (K * tauc**2),
+                "tauI": (tau, tauc) => (2 * tauc + tau),
+                "tauD": (tau, tauc) => 2 * tauc * tau / (2 * tauc + tau)
+            },
+            "FOPTD (Taylor Approx.)": {
+                "Kc": (K, tau, theta, tauc) => tau / (K * (tauc + theta)),
+                "tauI": (tau) => tau,
+                "tauD": () => 0
+            },
+            "FOPTD (Padé Approx.)": {
+                "Kc": (K, tau, theta, tauc) => (tau + theta / 2) / (K * (tauc + theta / 2)),
+                "tauI": (tau, theta) => tau + theta / 2,
+                "tauD": (tau, theta) => tau * theta / (2 * tau + theta)
+            },
+            "SOPTD (Overdamped, Stable Zero)": {
+                "Kc": (K, tau1, tau2, tau3, theta, tauc) => (tau1 + tau2 - tau3) / (K * (tauc + theta)),
+                "tauI": (tau1, tau2, tau3) => tau1 + tau2 - tau3,
+                "tauD": (tau1, tau2, tau3) => (tau1 * tau2 - (tau1 + tau2 - tau3) * tau3) / (tau1 + tau2 - tau3 + 1e-9)
+            },
+            "SOPTD (General, Stable Zero)": {
+                "Kc": (K, tau, zeta, tau3, theta, tauc) => (2 * zeta * tau - tau3) / (K * (tauc + theta)),
+                "tauI": (tau, zeta, tau3) => 2 * zeta * tau - tau3,
+                "tauD": (tau, tau3, zeta) => (tau**2 - (2 * zeta * tau - tau3) * tau3) / (2 * zeta * tau - tau3 + 1e-9)
+            },
+            "SOPTD (Overdamped, Unstable Zero)": {
+                "Kc": (K, tau1, tau2, tau3, theta, tauc) => (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)) / (K * (tauc + tau3 + theta)),
+                "tauI": (tau1, tau2, tau3, theta, tauc) => (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta)),
+                "tauD": (tau1, tau2, tau3, theta, tauc) => tau3 * theta / (tauc + tau3 + theta) + tau1 * tau2 / (tau1 + tau2 + tau3 * theta / (tauc + tau3 + theta) + 1e-9)
+            },
+            "SOPTD (General, Unstable Zero)": {
+                "Kc": (K, tau, zeta, tau3, theta, tauc) => (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)) / (K * (tauc + tau3 + theta)),
+                "tauI": (tau, zeta, tau3, theta, tauc) => (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta)),
+                "tauD": (tau, zeta, tau3, theta, tauc) => tau3 * theta / (tauc + tau3 + theta) + tau**2 / (2 * zeta * tau + tau3 * theta / (tauc + tau3 + theta) + 1e-9)
+            },
+            "Integrator with Delay (Taylor Approx.)": {
+                "Kc": (K, tauc, theta) => (2 * tauc + theta) / (K * (tauc + theta)**2),
+                "tauI": (tauc, theta) => 2 * tauc + theta,
+                "tauD": () => 0
+            },
+            "Integrator with Delay (Padé Approx.)": {
+                "Kc": (K, tauc, theta) => (2 * tauc + theta) / (K * (tauc + theta / 2)**2),
+                "tauI": (tauc, theta) => 2 * tauc + theta,
+                "tauD": (tauc, theta) => (tauc * theta + theta**2 / 4) / (2 * tauc + theta)
+            },
+            "1st Order with Integrator and Delay": {
+                "Kc": (K, tau, tauc, theta) => (2 * tauc + tau + theta) / (K * (tauc + theta)**2),
+                "tauI": (tau, tauc, theta) => 2 * tauc + tau + theta,
+                "tauD": (tau, tauc, theta) => (2 * tauc + theta) * tau / (2 * tauc + tau + theta)
+            }
+        };
+
+        const params = model_parameters[selected_model];
+        if (!params) {
+            return ["", "", ""];
+        }
+
+        const [K, tau, tau1, tau2, zeta, tau3, beta, theta, tauc] = slider_values;
+
+        const Kc = params.Kc(K || 0, tau || 0, tau1 || 0, tau2 || 0, zeta || 0, tau3 || 0, beta || 0, theta || 0, tauc || 0);
+        const tauI = params.tauI(tau || 0, tau1 || 0, tau2 || 0, zeta || 0, tau3 || 0, beta || 0, theta || 0, tauc || 0);
+        const tauD = params.tauD(tau || 0, tau1 || 0, tau2 || 0, zeta || 0, tau3 || 0, beta || 0, theta || 0, tauc || 0);
+
+        const tauD_display = tauD > 10000000 ? "∞" : tauD.toFixed(3);
+
+        return [
+            `${Kc.toFixed(3)}`,
+            `${tauI.toFixed(3)}`,
+            `${tauD_display}`
+        ];
+    }
+    """,
+    [Output('model-Kc', 'children'),
+     Output('model-tauI', 'children'),
+     Output('model-tauD', 'children')],
+    [Input('model-dropdown', 'value'),
+     Input({'type': 'slider', 'index': ALL}, 'value')],
+    prevent_initial_call=True
+)
 
 # Update the update_sliders function to use the updated param_labels
 @callback(
@@ -410,3 +468,19 @@ def apply_time_delay(time, signal, theta):
     if delay_steps < len(signal):
         delayed_signal[delay_steps:] = signal[:-delay_steps]
     return delayed_signal
+
+@callback(
+    [Output('label-Kc', 'style'),
+     Output('model-Kc', 'style'),
+     Output('label-tauI', 'style'),
+     Output('model-tauI', 'style'),
+     Output('label-tauD', 'style'),
+     Output('model-tauD', 'style')],
+    [Input('model-dropdown', 'value')],
+    prevent_initial_call=True
+)
+def update_label_visibility(selected_model):
+    if selected_model is None:
+        raise PreventUpdate
+
+    return [{'margin-bottom': '10px', 'color': 'white', 'display': 'block'}] * 6
