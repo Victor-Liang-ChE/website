@@ -46,8 +46,14 @@ def update_title(pathname):
         return 'Process Dynamics'
     elif pathname == '/PIDTuning':
         return 'PID Tuning'
+    elif pathname == '/jplyrics':
+        return 'Japanese Lyrics Analyzer'
+    elif pathname == '/chemeecon':
+        return 'Chemical Engineering Economics'
     else:
         return 'My Website'
 
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8080)
+
+# Dash is not actually running on http://0.0.0.0:8080/, its is running on localhost:8080

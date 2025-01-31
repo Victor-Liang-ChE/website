@@ -1,3 +1,4 @@
+# the build will not deploy if there is a missing python package here
 pip==24.3.1
 thermo==0.2.27
 matplotlib==3.7.0
@@ -7,3 +8,9 @@ dash-bootstrap-components==1.6.0
 beautifulsoup4==4.12.2
 pytz==2023.3.post1
 control==0.10.1
+mecab-python3==1.0.10
+json5==0.9.6
+dynet38==2.2
+cachetools==5.3.3
+pykykasi==2.3.0
+googletrans==4.0.0rc1
