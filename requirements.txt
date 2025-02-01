@@ -12,3 +12,4 @@ mecab-python3==1.0.10
 json5==0.9.6
 cachetools==5.3.3
 googletrans==4.0.0rc1
+sudachipy==0.6.10

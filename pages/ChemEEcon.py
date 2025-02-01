@@ -42,11 +42,12 @@ def display_content(selected_value):
                     dcc.Input(id='present-value-compound', type='number', value=1000, step=0.01, style={'margin-bottom': '10px'}),
                     html.Label("Number of Years:"),
                     dcc.Input(id='num-years-compound', type='number', value=1, min=1, max=1000000, step=1, style={'margin-bottom': '10px'}),
+                    html.Label("Compounds per Year:"),
+                    dcc.Input(id='compounds-per-year', type='number', value=1, min=1, max = 365, step=1, style={'margin-bottom': '10px'}),
                     html.Div([
                         html.Label("Interest Rate:"),
                         html.Span(id='interest-rate-display-compound', style={'margin-left': '10px'})
                     ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '10px'}),
-
                     html.Div([
                         dcc.Slider(
                             id='interest-rate-compound',
@@ -58,7 +59,6 @@ def display_content(selected_value):
                             updatemode='drag'
                         )
                     ], style={'margin-bottom': '10px'}),
-
                     dcc.Checklist(
                         id='compare-checkbox-compound',
                         options=[{'label': 'Compare with Simple Interest', 'value': 'compare'}],
@@ -331,7 +331,7 @@ clientside_callback(
                     tickformat: ",.0%"  // Format ticks as percentages
                 },
                 legend: {
-                    x: 0.2,
+                    x: 0.10,
                     y: 0.95,
                     xanchor: "left",
                     yanchor: "top",
@@ -395,60 +395,57 @@ clientside_callback(
 
 ########################### Compounding and Simple ###########################
 
+# Update clientside_callback for Compounding and Simple Interest to include compounds per year
 clientside_callback(
     """
-    function(present_value, num_years, interest_rate, compare) {
-        if (present_value === null || num_years === null || interest_rate === null) {
+    function(present_value, num_years, compounds_per_year, interest_rate, compare) {
+        if (present_value === null || num_years === null || compounds_per_year === null || interest_rate === null) {
+            return ["", "", "", {}];
+        }
+        if (num_years <= 0 || compounds_per_year <= 0) {
             return ["", "", "", {}];
         }
 
-        if (num_years <= 0) {
-            // Hide the graph by returning empty values and an empty figure
-            return ["", "", "", {}];
-        }
-
-        var future_value_compound = present_value * Math.pow(1 + (interest_rate / 100), num_years);
+        var total_periods = num_years * compounds_per_year;
+        var period_rate = (interest_rate / 100) / compounds_per_year;
+        var future_value_compound = present_value * Math.pow(1 + period_rate, total_periods);
         var future_value_simple = present_value * (1 + num_years * (interest_rate / 100));
-
-        if (isNaN(future_value_compound) || isNaN(future_value_simple)) {
-            return ["", "", "", {}];
-        }
 
         // Helper function to abbreviate numbers and format with commas
         function abbreviateNumber(num) {
             if (num >= 1e93) return '∞';
             const suffixes = [
-                { value: 1e93, symbol: 'Tg' },    // Trigintillion
-                { value: 1e90, symbol: 'Nvg' },   // Novemvigintillion
-                { value: 1e87, symbol: 'Ovg' },   // Octovigintillion
-                { value: 1e84, symbol: 'Spvg' },  // Septemvigintillion
-                { value: 1e81, symbol: 'Sxvg' },  // Sexvigintillion
-                { value: 1e78, symbol: 'Qvg' },   // Quinvigintillion
-                { value: 1e75, symbol: 'Qavg' },  // Quattuorvigintillion
-                { value: 1e72, symbol: 'Qav' },   // Quattuorvigintillion
-                { value: 1e69, symbol: 'Dvg' },   // Duovigintillion
-                { value: 1e66, symbol: 'Uvg' },   // Unvigintillion
-                { value: 1e63, symbol: 'Vg' },    // Vigintillion
-                { value: 1e60, symbol: 'Nvg' },   // Nonillion
-                { value: 1e57, symbol: 'Ocdc' },  // Octodecillion
-                { value: 1e54, symbol: 'Spvg' },  // Septendecillion
-                { value: 1e51, symbol: 'Sxdc' },  // Sexdecillion
-                { value: 1e48, symbol: 'Qidc' },  // Quindecillion
-                { value: 1e45, symbol: 'Qadc' },  // Quattuordecillion
-                { value: 1e42, symbol: 'Tdc' },   // Tredecillion
-                { value: 1e39, symbol: 'Ddc' },   // Duodecillion
-                { value: 1e36, symbol: 'Udc' },   // Undecillion
-                { value: 1e33, symbol: 'Dc' },    // Decillion
-                { value: 1e30, symbol: 'Nm' },    // Nonillion
-                { value: 1e27, symbol: 'Oc' },    // Octillion
-                { value: 1e24, symbol: 'Sp' },    // Septillion
-                { value: 1e21, symbol: 'Sx' },    // Sextillion
-                { value: 1e18, symbol: 'Qi' },    // Quintillion
-                { value: 1e15, symbol: 'Qa' },    // Quadrillion
-                { value: 1e12, symbol: 'T' },     // Trillion
-                { value: 1e9, symbol: 'B' },      // Billion
-                { value: 1e6, symbol: 'M' },      // Million
-                { value: 1e3, symbol: 'K' }       // Thousand
+                { value: 1e93, symbol: 'Tg' },
+                { value: 1e90, symbol: 'Nvg' },
+                { value: 1e87, symbol: 'Ovg' },
+                { value: 1e84, symbol: 'Spvg' },
+                { value: 1e81, symbol: 'Sxvg' },
+                { value: 1e78, symbol: 'Qvg' },
+                { value: 1e75, symbol: 'Qavg' },
+                { value: 1e72, symbol: 'Qav' },
+                { value: 1e69, symbol: 'Dvg' },
+                { value: 1e66, symbol: 'Uvg' },
+                { value: 1e63, symbol: 'Vg' },
+                { value: 1e60, symbol: 'Nvg' },
+                { value: 1e57, symbol: 'Ocdc' },
+                { value: 1e54, symbol: 'Spvg' },
+                { value: 1e51, symbol: 'Sxdc' },
+                { value: 1e48, symbol: 'Qidc' },
+                { value: 1e45, symbol: 'Qadc' },
+                { value: 1e42, symbol: 'Tdc' },
+                { value: 1e39, symbol: 'Ddc' },
+                { value: 1e36, symbol: 'Udc' },
+                { value: 1e33, symbol: 'Dc' },
+                { value: 1e30, symbol: 'Nm' },
+                { value: 1e27, symbol: 'Oc' },
+                { value: 1e24, symbol: 'Sp' },
+                { value: 1e21, symbol: 'Sx' },
+                { value: 1e18, symbol: 'Qi' },
+                { value: 1e15, symbol: 'Qa' },
+                { value: 1e12, symbol: 'T' },
+                { value: 1e9, symbol: 'B' },
+                { value: 1e6, symbol: 'M' },
+                { value: 1e3, symbol: 'K' }
             ];
 
             for (let i = 0; i < suffixes.length; i++) {
@@ -456,34 +453,28 @@ clientside_callback(
                     return (num / suffixes[i].value).toFixed(2) + suffixes[i].symbol;
                 }
             }
-            // For numbers less than 1 billion, format with commas
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        var future_value_compound_text =
-            "Future Value: $" +
-            abbreviateNumber(future_value_compound);
+        var future_value_compound_text = "Future Value: $" + abbreviateNumber(future_value_compound);
         var future_value_simple_text = compare.includes("compare")
-            ? "Future Value (Simple): $" +
-              abbreviateNumber(future_value_simple)
+            ? "Future Value (Simple): $" + abbreviateNumber(future_value_simple)
             : "";
         var difference_text = compare.includes("compare")
-            ? "Difference: $" +
-              abbreviateNumber(future_value_compound - future_value_simple)
+            ? "Difference: $" + abbreviateNumber(future_value_compound - future_value_simple)
             : "";
 
-        var years = Array.from({ length: num_years + 1 }, (_, i) => i);
-        var future_values_compound = years.map(
-            (year) => present_value * Math.pow(1 + (interest_rate / 100), year)
-        );
-        var future_values_simple = years.map(
-            (year) => present_value * (1 + year * (interest_rate / 100))
-        );
+        // Generate x-axis values in years (each period corresponds to 1/compounds_per_year year)
+        var x_values = Array.from({ length: total_periods + 1 }, (_, x) => x / compounds_per_year);
+        var future_values_compound = Array.from({ length: total_periods + 1 }, (_, x) => present_value * Math.pow(1 + period_rate, x));
+        var future_values_simple = x_values.map(function(t) {
+            return present_value * (1 + (interest_rate / 100) * t);
+        });
 
         var graph_data = {
             data: [
                 {
-                    x: years,
+                    x: x_values,
                     y: future_values_compound,
                     type: "line",
                     name: "Future Value (Compound)"
@@ -498,7 +489,7 @@ clientside_callback(
                 },
                 xaxis: {
                     title: {
-                        text: "Years, n",
+                        text: "Years",
                         font: { size: 18, color: "white", family: "Merriweather Sans" }
                     },
                     tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
@@ -509,7 +500,7 @@ clientside_callback(
                 },
                 yaxis: {
                     title: {
-                        text: "Future Value, F ($)",
+                        text: "Future Value ($)",
                         font: { size: 18, color: "white", family: "Merriweather Sans" }
                     },
                     tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
@@ -519,7 +510,7 @@ clientside_callback(
                     tickcolor: "white"
                 },
                 legend: {
-                    x: 0.05,
+                    x: 0.10,
                     y: 0.95,
                     xanchor: "left",
                     yanchor: "top",
@@ -533,7 +524,7 @@ clientside_callback(
 
         if (compare.includes("compare")) {
             graph_data.data.push({
-                x: years,
+                x: x_values,
                 y: future_values_simple,
                 type: "line",
                 name: "Future Value (Simple)"
@@ -557,6 +548,7 @@ clientside_callback(
     [
         Input("present-value-compound", "value"),
         Input("num-years-compound", "value"),
+        Input("compounds-per-year", "value"), 
         Input("interest-rate-compound", "value"),
         Input("compare-checkbox-compound", "value")
     ]
@@ -629,7 +621,7 @@ clientside_callback(
                     tickformat: ",.2f"    // Format y-axis as dollars with two decimals
                 },
                 legend: {
-                    x: 0.05,
+                    x: 0.10,
                     y: 0.95,
                     xanchor: "left",
                     yanchor: "top",
@@ -736,7 +728,7 @@ clientside_callback(
                         tickformat: ",.2f"
                     },
                     legend: {
-                        x: 0.05,
+                        x: 0.10,
                         y: 0.95,
                         xanchor: "left",
                         yanchor: "top",
@@ -797,7 +789,7 @@ clientside_callback(
                     tickformat: ",.2f"
                 },
                 legend: {
-                    x: 0.05,
+                    x: 0.10,
                     y: 0.95,
                     xanchor: "left",
                     yanchor: "top",
@@ -894,7 +886,7 @@ clientside_callback(
                     tickformat: ",.2f"
                 },
                 legend: {
-                    x: 0.05,
+                    x: 0.10,
                     y: 0.95,
                     xanchor: "left",
                     yanchor: "top",
@@ -991,7 +983,7 @@ clientside_callback(
                     tickformat: ",.2f"
                 },
                 legend: {
-                    x: 0.05,
+                    x: 0.10,
                     y: 0.95,
                     xanchor: "left",
                     yanchor: "top",
