@@ -73,7 +73,7 @@ left_container = html.Div(
                 dcc.Textarea(
                     id="japanese-input",
                     style={'width': '90%', 'height': '500px'},
-                    placeholder='入力した日本語のテキスト...'
+                    placeholder='Paste the lyrics here...'
                 )
             ],
             style={'display': 'block', 'margin': '0', 'padding': '0'}
