@@ -3,8 +3,8 @@ from dash import html, dcc, callback, Output, Input, clientside_callback
 import dash
 from sudachipy import dictionary, tokenizer
 import pykakasi
-kks = pykakasi.kakasi()
 
+kks = pykakasi.kakasi()
 dash.register_page(__name__, path='/jplyrics', name="Japanese Lyrics Furigana Toggle")
 
 # Initialize tokenizer
@@ -117,7 +117,7 @@ left_container = html.Div(
                 ],
                 value='hiragana',  # default is Hiragana
                 clearable=False,
-                style={'width': '100%', 'margin-bottom': '10px', 'color': 'black'}
+                style={'width': '100%', 'margin-bottom': '10px', 'color': 'black', 'textAlign': 'center', 'justifyContent': 'center'}
             )
         ], style={'display': 'flex', 'flexDirection': 'column', 'margin-bottom': '0px'}),
         html.Div(
@@ -142,7 +142,7 @@ left_container = html.Div(
         'position': 'absolute',
         'left': '0',
         'top': '0px',
-        'width': '320px',
+        'width': '220px',
         'padding': '10px',
         'backgroundColor': '#010131',
         'zIndex': 10
