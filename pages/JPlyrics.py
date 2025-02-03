@@ -132,7 +132,7 @@ left_container = html.Div(
                     id="loading-spinner",
                     type="circle",
                     children=[html.Div(id='dummy-output')],
-                    style={'margin-top': '50px'}
+                    style={'margin-top': '80px'}
                 )
             ],
             style={'display': 'block', 'margin': '0 auto', 'padding': '0', 'textAlign': 'center'}
