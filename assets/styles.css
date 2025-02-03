@@ -1,0 +1,148 @@
+/* styles.css */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Merriweather+Sans:wght@400;700&display=swap');
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #010131; /* Dark blue color */
+    color: white; /* Ensure text is white */
+    font-family: 'Merriweather Sans', sans-serif;
+    /* font-family: 'Arial', sans-serif; */
+}
+
+.bg-dark-blue {
+    background-color: #010131; /* Dark blue color */
+    color: white; /* Ensure text is white */
+}
+
+.bg-blue {
+    background-color: #000070; /* Blue color */
+    color: white; /* Ensure text is white */
+}
+
+.text-white {
+    color: #ffffff; /* Dark blue color */
+}
+
+.navbar {
+    display: flex;
+    justify-content: center;
+    padding: 14px 16px;
+}
+
+.nav-link {
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+
+.nav-link:hover {
+    transform: scale(1.1);
+}
+
+.text-center {
+    text-align: center;
+}
+
+.fw-bold {
+    font-weight: bold;
+}
+
+.fs-1 {
+    font-size: 2rem;
+}
+
+.logo {
+    transition: transform 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.2);
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.box-container {
+    display: flex;
+    gap: 20px;
+}
+
+.box-container a {
+    text-decoration: none;
+    color: inherit; /* Ensure the text color is inherited */
+}
+
+.box-container a:hover {
+    text-decoration: none; /* Ensure no underline on hover */
+}
+
+.box {
+    background-color: #000070; /* Blue color */
+    color: white;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 10px;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    cursor: pointer;
+    width: 200px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.box:hover {
+    transform: scale(1.05);
+    background-color: #003875; /* Lighter blue on hover */
+}
+
+/* Slider styles */
+.slider-orange .rc-slider-track {
+    background-color: orange;
+}
+
+.slider-orange .rc-slider-handle {
+    border-color: orange;
+}
+
+.slider-green .rc-slider-track {
+    background-color: green;
+}
+
+.slider-green .rc-slider-handle {
+    border-color: green;
+}
+
+.slider-red .rc-slider-track {
+    background-color: red;
+}
+
+.slider-red .rc-slider-handle {
+    border-color: red;
+}
+
+.slider-blue .rc-slider-track {
+    background-color: blue;
+}
+
+.slider-blue .rc-slider-handle {
+    border-color: blue;
+}
+
+.slider-purple .rc-slider-track {
+    background-color: purple;
+}
+
+.slider-purple .rc-slider-handle {
+    border-color: purple;
+}
