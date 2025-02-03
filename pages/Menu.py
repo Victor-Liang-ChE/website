@@ -35,7 +35,7 @@ def scrape_menu():
                     items = []
                     for idx, dd in enumerate(first_dl.find_all('dd')):
                         text = dd.text.strip().replace('(v)', '').replace('(vgn)', '').strip()
-                        if idx == 0 and tr_count in [6, 10, 12]:
+                        if idx == 0 and tr_count in [4, 10, 12]:
                             items.append({'text': text, 'highlight': True})
                         else:
                             items.append({'text': text, 'highlight': False})
