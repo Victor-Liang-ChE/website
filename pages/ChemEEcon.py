@@ -297,7 +297,8 @@ clientside_callback(
                     x: compounds,
                     y: ears,
                     type: "line",
-                    name: "Effective Annual Rate (EAR)"
+                    name: "Effective Annual Rate (EAR)",
+                    line: { color: "yellow" }
                 }
             ],
             layout: {
@@ -477,7 +478,8 @@ clientside_callback(
                     x: x_values,
                     y: future_values_compound,
                     type: "line",
-                    name: "Future Value (Compound)"
+                    name: "Future Value (Compound)",
+                    line: { color: "yellow" }
                 }
             ],
             layout: {
@@ -527,7 +529,8 @@ clientside_callback(
                 x: x_values,
                 y: future_values_simple,
                 type: "line",
-                name: "Future Value (Simple)"
+                name: "Future Value (Simple)",
+                line: { color: "red" }
             });
         }
 
@@ -587,7 +590,8 @@ clientside_callback(
                     x: yearList,
                     y: futureValues,
                     type: "line",
-                    name: "Future Value"
+                    name: "Future Value",
+                    line: { color: "yellow" }
                 }
             ],
             layout: {
@@ -694,7 +698,8 @@ clientside_callback(
                         x: Array.from({ length: years + 1 }, (_, y) => y),
                         y: pv_list,
                         type: "line",
-                        name: "Present Value"
+                        name: "Present Value",
+                        line: { color: "yellow" }
                     }
                 ],
                 layout: {
@@ -755,7 +760,8 @@ clientside_callback(
                     x: Array.from({ length: years + 1 }, (_, y) => y),
                     y: pv_list,
                     type: "line",
-                    name: "Present Value"
+                    name: "Present Value",
+                    line: { color: "yellow" }
                 }
             ],
             layout: {
@@ -852,7 +858,8 @@ clientside_callback(
                     x: cash_flow_values,
                     y: pv_values,
                     type: "line",
-                    name: "Present Value"
+                    name: "Present Value",
+                    line: { color: "yellow" }
                 }
             ],
             layout: {
@@ -949,7 +956,8 @@ clientside_callback(
                     x: years_list,
                     y: fpp_list,
                     type: "line",
-                    name: "Future Purchasing Power"
+                    name: "Future Purchasing Power",
+                    line: { color: "yellow" }
                 }
             ],
             layout: {
