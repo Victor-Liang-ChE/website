@@ -2,6 +2,8 @@ import re
 from dash import html, dcc, callback, Output, Input, clientside_callback
 import dash
 from sudachipy import dictionary, tokenizer
+import pykakasi
+kks = pykakasi.kakasi()
 
 dash.register_page(__name__, path='/jplyrics', name="Japanese Lyrics Furigana Toggle")
 
@@ -19,22 +21,61 @@ def katakana_to_hiragana(text):
             result.append(ch)
     return "".join(result)
 
-def add_furigana_lines(text):
+def add_furigana_katakana(text):
+    """Wrap Kanji with ruby using katakana readings (no conversion)."""
     lines = text.splitlines()
     processed_lines = []
     kanji_pattern = re.compile(r'[\u4e00-\u9faf]')
-    # Pattern to match full hiragana or full katakana
     non_kanji_pattern = re.compile(r'^(?:[\u3040-\u309F\u30A0-\u30FF]+)$')
     for line in lines:
         tokens = tokenizer_obj.tokenize(line, mode)
         result = []
         for token in tokens:
             surface = token.surface()
-            reading = katakana_to_hiragana(token.reading_form())
-            # Only wrap with ruby if surface contains at least one Kanji,
-            # is not entirely hiragana/katakana, and the reading differs.
+            reading = token.reading_form()  # Katakana reading
             if kanji_pattern.search(surface) and not non_kanji_pattern.fullmatch(surface) and surface != reading:
                 result.append(f"<ruby>{surface}<rt>{reading}</rt></ruby>")
+            else:
+                result.append(surface)
+        processed_lines.append("".join(result))
+    return processed_lines
+
+def add_furigana_romanji(text):
+    """Wrap Kanji with ruby using romanji conversion."""
+    lines = text.splitlines()
+    processed_lines = []
+    kanji_pattern = re.compile(r'[\u4e00-\u9faf]')
+    non_kanji_pattern = re.compile(r'^(?:[\u3040-\u309F\u30A0-\u30FF]+)$')
+    for line in lines:
+        tokens = tokenizer_obj.tokenize(line, mode)
+        result = []
+        for token in tokens:
+            surface = token.surface()
+            reading_kana = token.reading_form()
+            conversion = kks.convert(reading_kana)
+            romanji = "".join(item['hepburn'] for item in conversion)
+            if kanji_pattern.search(surface) and not non_kanji_pattern.fullmatch(surface) and surface != romanji:
+                result.append(f"<ruby>{surface}<rt>{romanji}</rt></ruby>")
+            else:
+                result.append(surface)
+        processed_lines.append("".join(result))
+    return processed_lines
+
+def add_furigana_lines(text):
+    """Wrap Kanji with ruby using hiragana readings (converted from katakana)."""
+    lines = text.splitlines()
+    processed_lines = []
+    kanji_pattern = re.compile(r'[\u4e00-\u9faf]')
+    non_kanji_pattern = re.compile(r'^(?:[\u3040-\u309F\u30A0-\u30FF]+)$')
+    for line in lines:
+        tokens = tokenizer_obj.tokenize(line, mode)
+        result = []
+        for token in tokens:
+            surface = token.surface()
+            reading = token.reading_form()  # Katakana reading
+            reading_hiragana = katakana_to_hiragana(reading)
+            if kanji_pattern.search(surface) and not non_kanji_pattern.fullmatch(surface) and surface != reading_hiragana:
+                result.append(f"<ruby>{surface}<rt>{reading_hiragana}</rt></ruby>")
             else:
                 result.append(surface)
         processed_lines.append("".join(result))
@@ -65,24 +106,36 @@ left_container = html.Div(
             html.Button("Hide/Show Input", id="hide-button-jplyrics", n_clicks=0,
                         style={'width': '100%', 'margin-bottom': '10px'}),
             html.Button("Toggle Furigana", id="toggle-button-jplyrics", n_clicks=0,
-                        style={'width': '100%', 'margin-bottom': '10px'})
-        ], style={'display': 'flex', 'flexDirection': 'column', 'margin-bottom': '20px'}),
+                        style={'width': '100%', 'margin-bottom': '10px'}),
+            # New dropdown for furigana format:
+            dcc.Dropdown(
+                id='furigana-format-dropdown',
+                options=[
+                    {'label': 'Hiragana', 'value': 'hiragana'},
+                    {'label': 'Katakana', 'value': 'katakana'},
+                    {'label': 'Romanji', 'value': 'romanji'}
+                ],
+                value='hiragana',  # default is Hiragana
+                clearable=False,
+                style={'width': '100%', 'margin-bottom': '10px', 'color': 'black'}
+            )
+        ], style={'display': 'flex', 'flexDirection': 'column', 'margin-bottom': '0px'}),
         html.Div(
             id="textarea-container",
             children=[
                 dcc.Textarea(
                     id="japanese-input",
-                    style={'width': '90%', 'height': '500px'},
+                    style={'width': '98%', 'height': '450px'},
                     placeholder='Paste the lyrics here...'
                 ),
                 dcc.Loading(
                     id="loading-spinner",
-                    type="circle",  # or 'default'
-                    children=[html.Div(id='dummy-output')],  # a hidden output
+                    type="circle",
+                    children=[html.Div(id='dummy-output')],
                     style={'margin-top': '50px'}
                 )
             ],
-            style={'display': 'block', 'margin': '0', 'padding': '0'}
+            style={'display': 'block', 'margin': '0 auto', 'padding': '0', 'textAlign': 'center'}
         )
     ],
     style={
@@ -147,28 +200,39 @@ layout = html.Div([
 )
 def update_lyrics_store(text):
     if not text:
-        return {'plain': "", 'furigana': ""}, None
+        return {'plain': "", 'hiragana': "", 'katakana': "", 'romanji': ""}, None
     plain_lines = merge_adjacent_duplicates(text.splitlines())
     plain_content = "<br>".join(plain_lines)
-    furigana_lines = merge_adjacent_duplicates(add_furigana_lines(text))
-    furigana_content = "<br>".join(furigana_lines)
-    return {'plain': plain_content, 'furigana': furigana_content}, None
+    hiragana_lines = merge_adjacent_duplicates(add_furigana_lines(text))
+    hiragana_content = "<br>".join(hiragana_lines)
+    katakana_lines = merge_adjacent_duplicates(add_furigana_katakana(text))
+    katakana_content = "<br>".join(katakana_lines)
+    romanji_lines = merge_adjacent_duplicates(add_furigana_romanji(text))
+    romanji_content = "<br>".join(romanji_lines)
+    return {'plain': plain_content, 'hiragana': hiragana_content, 
+            'katakana': katakana_content, 'romanji': romanji_content}, None
 
 #
 # CLIENTSIDE CALLBACK: Toggle furigana display (clientside).
 #
 dash.get_app().clientside_callback(
     """
-    function(n_clicks, cache) {
+    function(n_clicks, cache, fmt) {
         if (!cache) { return ""; }
-        // Toggle: if n_clicks is odd, show cached furigana; else plain.
+        // Determine whether to show furigana based on toggle button (odd clicks = show furigana)
         var showFurigana = (n_clicks % 2 === 1);
-        return showFurigana ? cache.furigana : cache.plain;
+        if (showFurigana) {
+            // Use the selected format from the dropdown (fmt)
+            return cache[fmt] || cache.hiragana;
+        } else {
+            return cache.plain;
+        }
     }
     """,
     Output('output-text', 'children'),
     [Input('toggle-button-jplyrics', 'n_clicks'),
-     Input('lyrics-store', 'data')]
+     Input('lyrics-store', 'data'),
+     Input('furigana-format-dropdown', 'value')]
 )
 
 #
