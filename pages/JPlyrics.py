@@ -74,6 +74,12 @@ left_container = html.Div(
                     id="japanese-input",
                     style={'width': '90%', 'height': '500px'},
                     placeholder='Paste the lyrics here...'
+                ),
+                dcc.Loading(
+                    id="loading-spinner",
+                    type="circle",  # or 'default'
+                    children=[html.Div(id='dummy-output')],  # a hidden output
+                    style={'margin-top': '50px'}
                 )
             ],
             style={'display': 'block', 'margin': '0', 'padding': '0'}
@@ -82,10 +88,10 @@ left_container = html.Div(
     style={
         'position': 'absolute',
         'left': '0',
-        'top': '0px',  # moved below the nav bar
+        'top': '0px',
         'width': '320px',
         'padding': '10px',
-        'backgroundColor': '#010131', # new container color
+        'backgroundColor': '#010131',
         'zIndex': 10
     }
 )
@@ -136,16 +142,17 @@ layout = html.Div([
 #
 @callback(
     Output('lyrics-store', 'data'),
+    Output('dummy-output', 'children'),
     [Input('japanese-input', 'value')]
 )
 def update_lyrics_store(text):
     if not text:
-        return {'plain': "", 'furigana': ""}
+        return {'plain': "", 'furigana': ""}, None
     plain_lines = merge_adjacent_duplicates(text.splitlines())
     plain_content = "<br>".join(plain_lines)
     furigana_lines = merge_adjacent_duplicates(add_furigana_lines(text))
     furigana_content = "<br>".join(furigana_lines)
-    return {'plain': plain_content, 'furigana': furigana_content}
+    return {'plain': plain_content, 'furigana': furigana_content}, None
 
 #
 # CLIENTSIDE CALLBACK: Toggle furigana display (clientside).

@@ -57,3 +57,7 @@ if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8080)
 
 # Dash is not actually running on http://0.0.0.0:8080/, its is running on localhost:8080
+# Python app.py may not run if there are corrupted packages and cannot be uninstalled using 
+#   pip uninstall <package>
+# Try manually deleting the package and if the package is being ran somewhere, use resource monitor 
+#   to end all python processes and then delete the package

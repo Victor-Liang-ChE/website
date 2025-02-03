@@ -1,6 +1,7 @@
 # the build will not deploy if there is a missing python package here
 # periodically check if there are new versions of the packages or missing packages 
 # before pushing build by creating venv: 
+# Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 # py -3.11 -m venv venv 
 # .\venv\Scripts\activate
 # python -m pip install -r requirements.txt
