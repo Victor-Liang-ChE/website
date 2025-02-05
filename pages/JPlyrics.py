@@ -187,7 +187,52 @@ layout = html.Div([
     left_container,
     # Cache stores
     dcc.Store(id='lyrics-store'),
-    dcc.Store(id='toggle-state', data={'furigana': False})
+    dcc.Store(id='toggle-state', data={'furigana': False}),
+    # Expandable Step-by-Step Thought Process Journal
+    html.Div(
+        children=html.Details([
+            html.Summary("Journal"),
+            dcc.Markdown("""
+- kinda been getting bored of music lately, i gotta listen to some old songs again 
+- ame to cappuccino is such a good song, she actually recommended the best songs man i miss her
+- gonna try singing it by following the lyrics, but it sucks that i cant read most of the kanji lmao
+- can i somehow enable the hirigana that sits on top of the kanji? oh i can cool
+- oh its called furigana ok
+- i wanna be able to toggle the furigana on and off so i can test my memory but spicetify doesnt let me toggle it on and off quickly
+- ill just build my own furigana toggle thing then
+- okok so i want a toggle button, probably a input box for copy and pasting the lyrics and then...
+- detect the kanji? i know the kanji has multiple readings like the kanji for "one" can sound like "hito" or "ii"
+- i want a dictionary that knows the context of the sentence and then give me the right kanji reading
+- gonna look it up... something something tokenizer... like the tokens chatgpt uses??
+- to split the sentence into words... ok
+- gonna try the package MeCab i guess it looks like it has the best numbers on this tokenizer comparison chart
+- nawww i know this doesnt sound right... 揺蕩 sounds like its sang: tayutau not youutouu... 
+- prob something wrong with the tokenizer, gonna try another one
+- ngl maybe the slowest one on that chart, sudachi, might give me more accurate results 
+- like do i really care about how fast the tokenizer is? you not gonna troll me and load for a minute right?
+- yea thats what i thought lmao, barely slower
+- and it gave me the right reading too ok ill just stick with this then
+- aight it looks like its coming together now! i should prob add more options like katakana and romanji for the furigana
+- ahh sudachipy doesnt have a romanji conversion, can i hard code the romanji comversion in???
+- jk lmao im gonna have to use another package for that
+- pykakasi it is then...  
+- awesome its working!!! i kinda want to hide the input box when im done using it tho, its so big an distracting 
+- translation next??? i know the google translate is kinda ass... ill try anyway
+- yea it is ass LMAO
+- can i just take the translations from musixmatch? i know thats what spicetify does
+- man they got a paid API that aint worth it for me
+- ahh whatever ill just live without the translations ;-;
+            """, style={'color': 'white', 'fontSize': '16px'})
+        ]),
+        style={
+            'position': 'fixed',
+            'bottom': '0',
+            'width': '100%',
+            'backgroundColor': '#010131',
+            'padding': '10px',
+            'zIndex': 20
+        }
+    )
 ], style={'position': 'relative', 'height': '100vh', 'width': '100vw'})
 
 #
