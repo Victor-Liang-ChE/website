@@ -1,2 +1,4 @@
 scrapcode.py
 test.py
+.DS_Store
+__pycache__/

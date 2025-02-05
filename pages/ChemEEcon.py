@@ -148,8 +148,8 @@ def display_content(selected_value):
         return html.Div([
         html.Div([
             html.Div([
-                html.Label("Annuity Payment:"),
-                dcc.Input(id='annuity-payment', type='number', value=1000, min=0, step=0.01, style={'margin-bottom': '10px'}),
+                html.Label("Present Value:"),
+                dcc.Input(id='annuity-present-value', type='number', value=1000, min=0, step=0.01, style={'margin-bottom': '10px'}),
 
                 html.Label("Number of Years:"),
                 dcc.Input(id='annuity-years', type='number', value=10, min=1, step=1, style={'margin-bottom': '10px'}),
@@ -169,7 +169,7 @@ def display_content(selected_value):
                     )
                 ], style={'margin-bottom': '10px'}),
 
-                html.Div(id='annuity-present-value', style={'font-weight': 'bold', 'font-size': '24px'})
+                html.Div(id='annuity-payment', style={'font-weight': 'bold', 'font-size': '24px'})
             ], style={'flex': '1', 'display': 'flex', 'flex-direction': 'column', 'gap': '10px'}),
             dcc.Graph(id='annuity-graph', style={'flex': '1', 'height': '600px', 'width': '600px'})
         ], style={'display': 'flex'})
@@ -680,93 +680,50 @@ clientside_callback(
 )
 
 ########################### Annuity ###########################
+# change it to solve for annuity, not the present value
+# include a compounds per year input box since the full equation is P = A*()
+
 
 clientside_callback(
     """
-    function(annuity, years, interest_rate) {
-        if(!annuity || !years || interest_rate === null) {
+    function(pv_input, max_years, interest_rate) {
+        if (!pv_input || !max_years || interest_rate === null) {
             return ["", {}];
         }
-
-        var i = interest_rate / 100;
-        if(i === 0) {
-            var pv = annuity * years;
-            var pv_list = Array.from({ length: years + 1 }, (_, y) => annuity * y);
-            var graph_data = {
-                data: [
-                    {
-                        x: Array.from({ length: years + 1 }, (_, y) => y),
-                        y: pv_list,
-                        type: "line",
-                        name: "Present Value",
-                        line: { color: "yellow" }
-                    }
-                ],
-                layout: {
-                    title: {
-                        text: "Present Value vs. Number of Years",
-                        x: 0.5,
-                        xanchor: "center",
-                        font: { color: "white", family: "Merriweather Sans" }
-                    },
-                    xaxis: {
-                        title: {
-                            text: "Number of Years",
-                            font: { size: 18, color: "white", family: "Merriweather Sans" }
-                        },
-                        tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
-                        ticks: "outside",
-                        ticklen: 10,
-                        tickwidth: 2,
-                        tickcolor: "white"
-                    },
-                    yaxis: {
-                        title: {
-                            text: "Present Value, PV ($)",
-                            font: { size: 18, color: "white", family: "Merriweather Sans" }
-                        },
-                        tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
-                        ticks: "outside",
-                        ticklen: 10,
-                        tickwidth: 2,
-                        tickcolor: "white",
-                        tickformat: ",.2f"
-                    },
-                    legend: {
-                        x: 0.10,
-                        y: 0.95,
-                        xanchor: "left",
-                        yanchor: "top",
-                        font: { color: "white", family: "Merriweather Sans" }
-                    },
-                    margin: { l: 100, r: 10, t: 40, b: 50 },
-                    plot_bgcolor: "#010131",
-                    paper_bgcolor: "#010131"
-                }
-            };
-            return [
-                "Present Value: $" + pv.toFixed(2),
-                graph_data
-            ];
-        }
-
-        var pv = annuity * (Math.pow(1 + i, years) - 1) / (i * Math.pow(1 + i, years));
-
-        var pv_list = Array.from({ length: years + 1 }, (_, y) => annuity * (Math.pow(1 + i, y) - 1) / (i * Math.pow(1 + i, y)));
-
+        var r = interest_rate / 100;
+        // Create an array of years from 1 to max_years
+        var years_range = Array.from({ length: max_years }, (_, i) => i + 1);
+        // Compute required annuity payment for each year in the range
+        var annuity_payments = years_range.map(function(n) {
+            if (r === 0) {
+                return pv_input / n;
+            } else {
+                return pv_input * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            }
+        });
+        // Get the payment corresponding to the selected max_years value
+        var selected_annuity = annuity_payments[annuity_payments.length - 1];
+        var result_text = "Required Annuity Payment: $" + selected_annuity.toFixed(2);
         var graph_data = {
             data: [
                 {
-                    x: Array.from({ length: years + 1 }, (_, y) => y),
-                    y: pv_list,
+                    x: years_range,
+                    y: annuity_payments,
                     type: "line",
-                    name: "Present Value",
+                    name: "Annuity Payment",
                     line: { color: "yellow" }
+                },
+                {
+                    x: [max_years],
+                    y: [selected_annuity],
+                    type: "markers",
+                    marker: { color: "red", size: 10 },
+                    name: "Selected Number of Years"
                 }
             ],
             layout: {
                 title: {
-                    text: "Present Value vs. Number of Years",
+                    text: "Required Annuity Payment vs. Number of Years",
                     x: 0.5,
                     xanchor: "center",
                     font: { color: "white", family: "Merriweather Sans" }
@@ -784,7 +741,7 @@ clientside_callback(
                 },
                 yaxis: {
                     title: {
-                        text: "Present Value, PV ($)",
+                        text: "Required Annuity Payment ($)",
                         font: { size: 18, color: "white", family: "Merriweather Sans" }
                     },
                     tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
@@ -806,23 +763,23 @@ clientside_callback(
                 paper_bgcolor: "#010131"
             }
         };
-
         return [
-            "Present Value: $" + pv.toFixed(2),
+            result_text,
             graph_data
         ];
     }
     """,
     [
-        Output("annuity-present-value", "children"),
+        Output("annuity-payment", "children"),
         Output("annuity-graph", "figure")
     ],
     [
-        Input("annuity-payment", "value"),
+        Input("annuity-present-value", "value"),
         Input("annuity-years", "value"),
         Input("annuity-interest-rate", "value")
     ]
 )
+
 
 clientside_callback(
     """
