@@ -11,15 +11,15 @@ github_logo_url = "https://github.githubassets.com/images/modules/logos_page/Git
 linkedin_logo_url = "https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png"
 ucsb_logo_url = "https://upload.wikimedia.org/wikipedia/commons/d/d4/UC_Santa_Barbara_logo.svg"
 
-# List of sample sentences
+# Gonna move the quirky stuff to a separate about page, this should be the page for employers lmao
 sentences = [
     "I'm a Chemical Engineer. 🔧",
+    "I enjoy making chemical engineering concept visualization tools to solve my problems efficiently. 🤓",
     html.P([
         "Currently a senior at the University of California, Santa Barbara. ",
         html.Img(src=ucsb_logo_url, style={'height': '20px'})
     ]),
     "Will pursue a masters degree in materials next year. 🎓",
-    "Learned a little bit of Python and thought I could make some cool things with it. 🤓",
     html.P([
         "Big Warriors ", 
         html.Img(src=warriors_logo_url, style={'height': '20px'}), 

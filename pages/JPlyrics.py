@@ -194,7 +194,7 @@ layout = html.Div([
             html.Summary("Journal"),
             dcc.Markdown("""
 - kinda been getting bored of music lately, i gotta listen to some old songs again 
-- ame to cappuccino is such a good song, she actually recommended the best songs man i miss her
+- ame to cappuccino is such a good song, she actually recommended the best songs ahhahhaha
 - gonna try singing it by following the lyrics, but it sucks that i cant read most of the kanji lmao
 - can i somehow enable the hirigana that sits on top of the kanji? oh i can cool
 - oh its called furigana ok
