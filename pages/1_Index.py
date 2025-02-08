@@ -14,7 +14,8 @@ ucsb_logo_url = "https://upload.wikimedia.org/wikipedia/commons/d/d4/UC_Santa_Ba
 # Gonna move the quirky stuff to a separate about page, this should be the page for employers lmao
 sentences = [
     "I'm a Chemical Engineer. 🔧",
-    "I enjoy making chemical engineering concept visualization tools to solve my problems efficiently. 🤓",
+    "I develop simulations for chemical engineering concepts to solve problems more efficiently. 🤓",
+    "These simulations feature an interactive McCabe-Thiele Plot, reaction kinetics concentration profiles, process dynamics response profiles, and PID controllers. 📈",
     html.P([
         "Currently a senior at the University of California, Santa Barbara. ",
         html.Img(src=ucsb_logo_url, style={'height': '20px'})

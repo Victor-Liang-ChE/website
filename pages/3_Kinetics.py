@@ -6,7 +6,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import re
 
-dash.register_page(__name__, path='/kinetics', name="Kinetics Graph")
+dash.register_page(__name__, path='/kinetics', name="Reaction Kinetics")
 
 def subscript_numbers(species):
     parts = re.split(r'(\d+)', species)

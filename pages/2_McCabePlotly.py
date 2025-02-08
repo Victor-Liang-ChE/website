@@ -6,7 +6,7 @@ from scipy.optimize import fsolve
 from dash import dcc, html, Input, Output, callback, Patch, State, callback_context
 from TxyPxyxy import xy
 
-dash.register_page(__name__, path='/mccabe', name="McCabe-Thiele Interactive Plot")
+dash.register_page(__name__, path='/mccabe', name="McCabe-Thiele")
 
 fig = go.Figure()
 comp1 = "methanol"

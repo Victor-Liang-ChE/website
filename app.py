@@ -9,7 +9,7 @@ external_css = ["/assets/styles.css"]
 
 app = Dash(__name__, pages_folder='pages', use_pages=True, external_stylesheets=external_css, suppress_callback_exceptions=True)
 
-navbar_pages = ['About', 'McCabe-Thiele Interactive Plot', 'Kinetics Graph', 'Process Dynamics', 'PID Tuning', 'Miscellaneous']
+navbar_pages = ['About', 'McCabe-Thiele', 'Reaction Kinetics', 'Process Dynamics', 'PID Tuning', 'Miscellaneous']
 # nav bar ordering system determined by the number in the filename, e.g. 7_processdynamics.py
 
 app.layout = html.Div([
@@ -33,7 +33,7 @@ def update_title(pathname):
     if pathname == '/':
         return 'Victor Liang'
     elif pathname == '/mccabe':
-        return 'McCabe-Thiele Interactive Plot'
+        return 'McCabe-Thiele'
     elif pathname == '/kinetics':
         return 'Kinetics'
     elif pathname == '/dropchance':
