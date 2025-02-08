@@ -16,23 +16,25 @@ sentences = [
     "I'm a Chemical Engineer. 🔧",
     "I develop simulations for chemical engineering concepts to solve problems more efficiently. 🤓",
     "These simulations feature an interactive McCabe-Thiele Plot, reaction kinetics concentration profiles, process dynamics response profiles, and PID controllers. 📈",
+    "Languages and Frameworks: Python, JavaScript, HTML, CSS, and Dash. 💻",
+    "Python Packages: NumPy, SciPy, Pandas, Matplotlib, scikit-learn, Plotly, RegEx, Control, and BeautifulSoup4. 📦",
     html.P([
         "Currently a senior at the University of California, Santa Barbara. ",
         html.Img(src=ucsb_logo_url, style={'height': '20px'})
     ]),
-    "Will pursue a masters degree in materials next year. 🎓",
-    html.P([
-        "Big Warriors ", 
-        html.Img(src=warriors_logo_url, style={'height': '20px'}), 
-        " and Niners ", 
-        html.Img(src=niners_logo_url, style={'height': '20px'}), 
-        " fan. (Cowboys suck ", 
-        html.Span("💩"), 
-        " but Lakers are cool)"
-    ]),
-    html.P(["I am a ", html.B("gamer"), ". 🎮"]), 
+    "Will pursue a masters degree in materials science next year. 🎓",
+    # html.P([
+    #     "Big Warriors ", 
+    #     html.Img(src=warriors_logo_url, style={'height': '20px'}), 
+    #     " and Niners ", 
+    #     html.Img(src=niners_logo_url, style={'height': '20px'}), 
+    #     " fan. (Cowboys suck ", 
+    #     html.Span("💩"), 
+    #     " but Lakers are cool)"
+    # ]),
+    # html.P(["I am a ", html.B("gamer"), ". 🎮"]), 
     "Want to contact me? victorliang@ucsb.edu 📧",
-    "Under construction, but take a look around! 😄"
+    "Under heavy construction, but take a look around! 😄"
 ]
 
 # Define the layout
