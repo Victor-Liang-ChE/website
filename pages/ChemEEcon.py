@@ -248,7 +248,41 @@ def display_content(selected_value):
                 dcc.Graph(id='inflationary-effects-graph', style={'flex': '1', 'height': '600px', 'width': '600px'})
             ], style={'display': 'flex'})
         ])
-
+    
+    elif selected_value == 'depreciation':
+        return html.Div([
+            html.Div([
+                html.Label("FCI (Initial Cost):"),
+                dcc.Input(id='depreciation-fci', type='number', value=10000, min=0, step=0.01, style={'margin-bottom': '10px'}),
+                html.Label("Equipment Life (years):"),
+                dcc.Input(id='depreciation-life', type='number', value=10, min=1, step=1, style={'margin-bottom': '10px'}),
+                html.Div([
+                    html.Label("Salvage Value (for Straight Line):"),
+                    dcc.Input(id='depreciation-salvage', type='number', value=1000, min=0, step=0.01, style={'margin-bottom': '10px'})
+                ]),
+                html.Label("Depreciation Method:"),
+                dcc.RadioItems(
+                    id='depreciation-method',
+                    options=[
+                        {'label': 'Straight Line', 'value': 'straight'},
+                        {'label': 'MACRS', 'value': 'macrs'}
+                    ],
+                    value='straight',
+                    inline=True,
+                    style={'margin-bottom': '10px'}
+                ),
+                dcc.Checklist(
+                    id='compare-checkbox-depreciation',
+                    options=[{'label': 'Overlay both methods for comparison', 'value': 'compare'}],
+                    value=[],
+                    style={'margin-bottom': '10px'}
+                ),
+                html.Div(id='depreciation-output', style={'font-weight': 'bold', 'font-size': '24px'}),
+                html.Div(id='macrs-depreciation-output', style={'font-weight': 'bold', 'font-size': '24px'})  # Add this line
+            ], style={'flex': '1', 'display': 'flex', 'flex-direction': 'column', 'gap': '10px'}),
+            dcc.Graph(id='depreciation-graph', style={'flex': '1', 'height': '600px', 'width': '600px'})
+        ], style={'display': 'flex'})
+    
 ########################### EAR ###########################
 
 clientside_callback(
@@ -1002,4 +1036,168 @@ clientside_callback(
     """,
     Output('inflation-display', 'children'),
     Input('inflation-rate', 'value')
+)
+
+########################### Depreciation ###########################
+clientside_callback(
+    """
+    function(fci, life, salvage, method, compare) {
+        if (fci == null || life == null || life <= 0) {
+            return ["", "", {}];
+        }
+        // Total depreciable amount
+        var depreciable = fci - salvage;
+        // Total periods = equipment life + 1 (to account for the half-year convention)
+        var totalPeriods = life + 1;
+        // Array of period numbers for x-axis (1 to totalPeriods)
+        var years = [];
+        for (var i = 1; i <= totalPeriods; i++) {
+            years.push(i);
+        }
+        // Compute straight-line annual depreciation (for the straight-line curve)
+        var straight = [];
+        var straight_val = depreciable / life;
+        // For each full year, add the equal depreciation amount...
+        for (var i = 0; i < life; i++) {
+            straight.push(straight_val);
+        }
+        // ...and add a final period (zero depreciation) so that the arrays line up.
+        straight.push(straight_val);
+    
+        // Compute MACRS using dynamic switching from double-declining to straight-line.
+        var macrs = [];
+        var bookValue = depreciable;
+        var r = 2 / life; // double-declining rate
+        var switched = false;
+        var fullYearDep = 0;
+        // Period 1: half-year of double-declining
+        var d = bookValue * r * 0.5;
+        macrs.push(d);
+        bookValue -= d;
+        // For periods 2 to totalPeriods
+        for (var period = 2; period <= totalPeriods; period++) {
+            if (!switched) {
+                var dblDecline = bookValue * r;
+                // Remaining periods (including the final half-year)
+                var remainingPeriods = (totalPeriods - period) + 0.5;
+                var straightLine_est = bookValue / remainingPeriods;
+                if (dblDecline > straightLine_est) {
+                    d = dblDecline;
+                    macrs.push(d);
+                    bookValue -= d;
+                } else {
+                    // Switch to straight-line depreciation.
+                    switched = true;
+                    fullYearDep = straightLine_est;
+                    // For the remaining full periods (except the final half-year period)
+                    for (var j = period; j < totalPeriods; j++) {
+                        macrs.push(fullYearDep);
+                        bookValue -= fullYearDep;
+                    }
+                    // Final period: half of the full-year depreciation
+                    macrs.push(fullYearDep * 0.5);
+                    bookValue -= fullYearDep * 0.5;
+                    break;
+                }
+            }
+        }
+        // (Optional) If no switch occurred, the loop completes naturally
+    
+        // Build output text summarizing total depreciation.
+        // Compute totals based on the full arrays.
+        var total_straight = straight.reduce((a, b) => a + b, 0);
+        var total_macrs = macrs.reduce((a, b) => a + b, 0);
+        var straight_summary = "";
+        var macrs_summary = "";
+        if (compare.includes("compare")) {
+            straight_summary = "Total Depreciation (Straight Line): $" + total_straight.toFixed(2);
+            macrs_summary = "Total Depreciation (MACRS): $" + total_macrs.toFixed(2);
+        } else {
+            if (method === "straight") {
+                straight_summary = "Total Depreciation (Straight Line): $" + total_straight.toFixed(2);
+            } else {
+                macrs_summary = "Total Depreciation (MACRS): $" + total_macrs.toFixed(2);
+            }
+        }
+        // Build graph data.
+        var graph_data = {
+            data: [],
+            layout: {
+                title: {
+                    text: "Depreciation vs. Equipment Life",
+                    x: 0.5,
+                    xanchor: "center",
+                    font: { color: "white", family: "Merriweather Sans" }
+                },
+                xaxis: {
+                    title: { text: "Year", font: { size: 18, color: "white", family: "Merriweather Sans" } },
+                    tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
+                    ticks: "outside",
+                    ticklen: 10,
+                    tickwidth: 2,
+                    tickcolor: "white"
+                },
+                yaxis: {
+                    title: { text: "Annual Depreciation ($)", font: { size: 18, color: "white", family: "Merriweather Sans" } },
+                    tickfont: { size: 14, color: "white", family: "Merriweather Sans" },
+                    ticks: "outside",
+                    ticklen: 10,
+                    tickwidth: 2,
+                    tickcolor: "white"
+                },
+                margin: { l: 70, r: 10, t: 40, b: 50 },
+                plot_bgcolor: "#010131",
+                paper_bgcolor: "#010131",
+                legend: { font: { color: "white", family: "Merriweather Sans" } }
+            }
+        };
+        if (compare.includes("compare")) {
+            graph_data.data.push({
+                x: years,
+                y: straight,
+                type: "line",
+                name: "Straight Line",
+                line: { color: "red" }
+            });
+            graph_data.data.push({
+                x: years,
+                y: macrs,
+                type: "line",
+                name: "MACRS",
+                line: { color: "yellow" }
+            });
+        } else {
+            if (method === "straight") {
+                graph_data.data.push({
+                    x: years,
+                    y: straight,
+                    type: "line",
+                    name: "Straight Line",
+                    line: { color: "red" }
+                });
+            } else {
+                graph_data.data.push({
+                    x: years,
+                    y: macrs,
+                    type: "line",
+                    name: "MACRS",
+                    line: { color: "yellow" }
+                });
+            }
+        }
+        return [straight_summary, macrs_summary, graph_data];
+    }
+    """,
+    [
+        Output("depreciation-output", "children"),
+        Output("macrs-depreciation-output", "children"),   
+        Output("depreciation-graph", "figure")
+    ],
+    [
+        Input("depreciation-fci", "value"),
+        Input("depreciation-life", "value"),
+        Input("depreciation-salvage", "value"),
+        Input("depreciation-method", "value"),
+        Input("compare-checkbox-depreciation", "value")
+    ]
 )
