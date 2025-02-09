@@ -252,12 +252,12 @@ def display_content(selected_value):
     elif selected_value == 'depreciation':
         return html.Div([
             html.Div([
-                html.Label("FCI (Initial Cost):"),
+                html.Label("FCI:"),
                 dcc.Input(id='depreciation-fci', type='number', value=10000, min=0, step=0.01, style={'margin-bottom': '10px'}),
                 html.Label("Equipment Life (years):"),
                 dcc.Input(id='depreciation-life', type='number', value=10, min=1, step=1, style={'margin-bottom': '10px'}),
                 html.Div([
-                    html.Label("Salvage Value (for Straight Line):"),
+                    html.Label("Salvage Value:"),
                     dcc.Input(id='depreciation-salvage', type='number', value=1000, min=0, step=0.01, style={'margin-bottom': '10px'})
                 ]),
                 html.Label("Depreciation Method:"),
@@ -1045,8 +1045,6 @@ clientside_callback(
         if (fci == null || life == null || life <= 0) {
             return ["", "", {}];
         }
-        // Total depreciable amount
-        var depreciable = fci - salvage;
         // Total periods = equipment life + 1 (to account for the half-year convention)
         var totalPeriods = life + 1;
         // Array of period numbers for x-axis (1 to totalPeriods)
@@ -1056,17 +1054,17 @@ clientside_callback(
         }
         // Compute straight-line annual depreciation (for the straight-line curve)
         var straight = [];
-        var straight_val = depreciable / life;
+        var straight_val = (fci - salvage) / life;
         // For each full year, add the equal depreciation amount...
         for (var i = 0; i < life; i++) {
             straight.push(straight_val);
         }
         // ...and add a final period (zero depreciation) so that the arrays line up.
         straight.push(straight_val);
-    
+
         // Compute MACRS using dynamic switching from double-declining to straight-line.
         var macrs = [];
-        var bookValue = depreciable;
+        var bookValue = fci;
         var r = 2 / life; // double-declining rate
         var switched = false;
         var fullYearDep = 0;
@@ -1102,7 +1100,7 @@ clientside_callback(
             }
         }
         // (Optional) If no switch occurred, the loop completes naturally
-    
+
         // Build output text summarizing total depreciation.
         // Compute totals based on the full arrays.
         var total_straight = straight.reduce((a, b) => a + b, 0);
