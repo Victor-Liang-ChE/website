@@ -143,8 +143,8 @@ def reactiongraphing(reactions, ks, C0):
             range=[0, np.max(solution.y)]
         ),
         template='plotly_dark',
-        plot_bgcolor='#010131',  # Set plot background color
-        paper_bgcolor='#010131',  # Set paper background color
+        plot_bgcolor='#08306b',  # Set plot background color
+        paper_bgcolor='#08306b',  # Set paper background color
         autosize=False,
         width=500,
         height=500

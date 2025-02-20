@@ -144,7 +144,7 @@ left_container = html.Div(
         'top': '0px',
         'width': '220px',
         'padding': '10px',
-        'backgroundColor': '#010131',
+        'backgroundColor': '#08306b',
         'zIndex': 10
     }
 )
@@ -228,7 +228,7 @@ layout = html.Div([
             'position': 'fixed',
             'bottom': '0',
             'width': '100%',
-            'backgroundColor': '#010131',
+            'backgroundColor': '#08306b',
             'padding': '10px',
             'zIndex': 20
         }

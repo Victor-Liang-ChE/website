@@ -173,8 +173,8 @@ fig.update_layout(
         font=dict(color='white', family='Merriweather Sans')  # Set legend text color to white and font to Merriweather Sans
     ),
     margin=dict(l=10, r=10, t=40, b=10),  # Reduce margins to remove whitespace
-    plot_bgcolor='#010131',  # Set plot background color to dark blue from CSS
-    paper_bgcolor='#010131'  # Set paper background color to dark blue from CSS
+    plot_bgcolor='#08306b',  # Set plot background color to dark blue from CSS
+    paper_bgcolor='#08306b'  # Set paper background color to dark blue from CSS
 )
 
 layout = html.Div([
@@ -203,7 +203,7 @@ layout = html.Div([
                            max=1, 
                            step=0.01, 
                            value=0.9, 
-                           marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
+                           marks={float(i): str(round(float(i), 1)) for i in np.arange(0, 1, 0.1)}, 
                            updatemode='drag',
                            className='slider-orange'  # Assign class for styling
                 )
@@ -216,7 +216,7 @@ layout = html.Div([
                            max=1, 
                            step=0.01, 
                            value=0.1, 
-                           marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
+                           marks={float(i): str(round(float(i), 1)) for i in np.arange(0, 1, 0.1)},
                            updatemode='drag',
                            className='slider-green'  # Assign class for styling
                 )
@@ -229,7 +229,7 @@ layout = html.Div([
                            max=1, 
                            step=0.01, 
                            value=0.5, 
-                           marks={i: str(round(i, 1)) for i in np.arange(0, 1, 0.1)}, 
+                           marks={float(i): str(round(float(i), 1)) for i in np.arange(0, 1, 0.1)},
                            updatemode='drag',
                            className='slider-red'  # Assign class for styling
                 )
@@ -242,7 +242,7 @@ layout = html.Div([
                            max=2, 
                            step=0.1, 
                            value=0.5, 
-                           marks={i: str(round(i, 1)) for i in np.arange(-2, 2, 0.5)}, 
+                           marks={float(i): str(round(float(i), 1)) for i in np.arange(-2, 2, 0.5)},
                            updatemode='drag',
                            className='slider-blue'  # Assign class for styling
                 )
@@ -255,7 +255,7 @@ layout = html.Div([
                            max=10, 
                            step=0.1, 
                            value=2, 
-                           marks={i: str(round(i, 1)) for i in np.arange(0, 10, 0.5)}, 
+                           marks={float(i): str(round(float(i), 1)) for i in np.arange(0, 10, 0.5)},
                            updatemode='drag',
                            className='slider-purple'  # Assign class for styling
                 )
@@ -549,8 +549,8 @@ def update_plot(xd, xb, xf, q, R, xi, yi, z, comp1, comp2, T, P): # use Patch to
             font=dict(color='white', family='Merriweather Sans')  # Set legend text color to white and font to Merriweather
         ),
         margin=dict(l=10, r=10, t=40, b=10),  # Reduce margins to remove whitespace
-        plot_bgcolor='#010131',  # Set plot background color to dark blue from CSS
-        paper_bgcolor='#010131'  # Set paper background color to dark blue from CSS
+        plot_bgcolor='#08306b',  # Set plot background color to dark blue from CSS
+        paper_bgcolor='#08306b'  # Set paper background color to dark blue from CSS
     )
 
     return patched_figure, f"Number of stages: {stages}", f"Feed stage: {feedstage}"

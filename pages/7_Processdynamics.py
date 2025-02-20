@@ -234,8 +234,8 @@ clientside_callback(
                     font: {color: 'white'}
                 },
                 template: 'plotly_dark',
-                plot_bgcolor: '#010131',
-                paper_bgcolor: '#010131',
+                plot_bgcolor: '#08306b',
+                paper_bgcolor: '#08306b',
                 autosize: false,
                 width: 500,
                 height: 500

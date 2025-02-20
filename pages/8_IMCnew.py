@@ -280,8 +280,8 @@ def update_graph(slider_values, selected_method, selected_model):
         yaxis_title="Output",
         legend_title="Legend",
         template="plotly_dark",
-        plot_bgcolor="#010131",
-        paper_bgcolor="#010131",
+        plot_bgcolor="#08306b",
+        paper_bgcolor="#08306b",
         xaxis_showgrid=False,
         yaxis_showgrid=False
     )

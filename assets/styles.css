@@ -5,24 +5,24 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #010131; /* Dark blue color */
+    background-color: #08306b; /* Dark blue color */
     color: white; /* Ensure text is white */
     font-family: 'Merriweather Sans', sans-serif;
     /* font-family: 'Arial', sans-serif; */
 }
 
 .bg-dark-blue {
-    background-color: #010131; /* Dark blue color */
+    background-color: #08306b; /* Dark blue color */
     color: white; /* Ensure text is white */
 }
 
 .bg-blue {
-    background-color: #000070; /* Blue color */
+    background-color: #08519c; /* Blue color */
     color: white; /* Ensure text is white */
 }
 
 .text-white {
-    color: #ffffff; /* Dark blue color */
+    color: #ffffff; /* White color */
 }
 
 .navbar {
@@ -85,7 +85,7 @@ html, body {
 }
 
 .box {
-    background-color: #000070; /* Blue color */
+    background-color: #08519c; /* Blue color */
     color: white;
     padding: 20px;
     text-align: center;
@@ -103,7 +103,7 @@ html, body {
 
 .box:hover {
     transform: scale(1.05);
-    background-color: #003875; /* Lighter blue on hover */
+    background-color: #2171b5; /* Lighter blue on hover */
 }
 
 /* Slider styles */

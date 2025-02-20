@@ -2,3 +2,6 @@ scrapcode.py
 test.py
 .DS_Store
 __pycache__/
+.vscode/
+!.vscode/settings.json
+.pytest_cache/

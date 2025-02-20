@@ -37,41 +37,49 @@ def display_content(selected_value):
     if selected_value == 'compounding_interest':
         return html.Div([
             html.Div([
+                html.Label("Present Value:"),
+                dcc.Input(id='present-value-compound', type='number', value=1000, step=0.01, style={'margin-bottom': '10px'}),
+                html.Label("Number of Years:"),
+                dcc.Input(id='num-years-compound', type='number', value=1, min=1, max=1000000, step=1, style={'margin-bottom': '10px'}),
+                html.Label("Compounds per Year:"),
+                dcc.Input(id='compounds-per-year', type='number', value=1, min=1, max=365, step=1, style={'margin-bottom': '10px'}),
                 html.Div([
-                    html.Label("Present Value:"),
-                    dcc.Input(id='present-value-compound', type='number', value=1000, step=0.01, style={'margin-bottom': '10px'}),
-                    html.Label("Number of Years:"),
-                    dcc.Input(id='num-years-compound', type='number', value=1, min=1, max=1000000, step=1, style={'margin-bottom': '10px'}),
-                    html.Label("Compounds per Year:"),
-                    dcc.Input(id='compounds-per-year', type='number', value=1, min=1, max = 365, step=1, style={'margin-bottom': '10px'}),
-                    html.Div([
-                        html.Label("Interest Rate:"),
-                        html.Span(id='interest-rate-display-compound', style={'margin-left': '10px'})
-                    ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '10px'}),
-                    html.Div([
-                        dcc.Slider(
-                            id='interest-rate-compound',
-                            min=0,
-                            max=100,
-                            step=0.1,
-                            value=5,
-                            marks={i: f'{i}%' for i in range(0, 101, 10)},
-                            updatemode='drag'
-                        )
-                    ], style={'margin-bottom': '10px'}),
-                    dcc.Checklist(
-                        id='compare-checkbox-compound',
-                        options=[{'label': 'Compare with Simple Interest', 'value': 'compare'}],
-                        value=[],
-                        style={'margin-bottom': '10px'}
-                    ),
-                    html.Div(id='future-value-output-compound', style={'font-weight': 'bold', 'font-size': '24px'}),
-                    html.Div(id='future-value-simple-output-compound', style={'font-weight': 'bold', 'font-size': '24px'}),
-                    html.Div(id='difference-output-compound', style={'font-weight': 'bold', 'font-size': '24px'})
-                ], style={'flex': '1', 'display': 'flex', 'flex-direction': 'column', 'gap': '10px'}),
-                dcc.Graph(id='future-value-graph-compound', style={'flex': '1', 'height': '600px', 'width': '600px'})
-            ], style={'display': 'flex'})
-        ])
+                    html.Label("Interest Rate:"),
+                    html.Span(id='interest-rate-display-compound', style={'margin-left': '10px'})
+                ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '10px'}),
+                html.Div([
+                    dcc.Slider(
+                        id='interest-rate-compound',
+                        min=0,
+                        max=100,
+                        step=0.1,
+                        value=5,
+                        marks={i: f'{i}%' for i in range(0, 101, 10)},
+                        updatemode='drag'
+                    )
+                ], style={'margin-bottom': '10px'}),
+                dcc.Checklist(
+                    id='compare-checkbox-compound',
+                    options=[{'label': 'Compare with Simple Interest', 'value': 'compare'}],
+                    value=[],
+                    style={'margin-bottom': '10px'}
+                ),
+                # Use dcc.Markdown to display equations in LaTeX format
+                dcc.Markdown(
+                    r'''
+                $$FV = PV \left(1 + \frac{r/100}{n}\right)^{nt}$$
+
+                $$FV = PV \left(1 + n \frac{r}{100}\right)$$
+                    ''',
+                    mathjax=True,
+                    style={'margin-bottom': '10px', 'fontStyle': 'italic'}
+                ),
+                html.Div(id='future-value-output-compound', style={'font-weight': 'bold', 'font-size': '24px'}),
+                html.Div(id='future-value-simple-output-compound', style={'font-weight': 'bold', 'font-size': '24px'}),
+                html.Div(id='difference-output-compound', style={'font-weight': 'bold', 'font-size': '24px'})
+            ], style={'flex': '1', 'display': 'flex', 'flex-direction': 'column', 'gap': '10px'}),
+            dcc.Graph(id='future-value-graph-compound', style={'flex': '1', 'height': '600px', 'width': '600px'})
+        ], style={'display': 'flex'})
 
     elif selected_value == 'ear':
         return html.Div([
@@ -373,8 +381,8 @@ clientside_callback(
                     font: { color: "white", family: "Merriweather Sans" }
                 },
                 margin: { l: 90, r: 10, t: 40, b: 50 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131",
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b",
                 shapes: compare.includes("compare")
                     ? [
                           {
@@ -553,8 +561,8 @@ clientside_callback(
                     font: { color: "white", family: "Merriweather Sans" }
                 },
                 margin: { l: 70, r: 10, t: 40, b: 50 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131"
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b"
             }
         };
 
@@ -666,8 +674,8 @@ clientside_callback(
                     font: { color: "white", family: "Merriweather Sans" }
                 },
                 margin: { l: 70, r: 10, t: 40, b: 50 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131"
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b"
             }
         };
 
@@ -793,8 +801,8 @@ clientside_callback(
                     font: { color: "white", family: "Merriweather Sans" }
                 },
                 margin: { l: 100, r: 10, t: 40, b: 50 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131"
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b"
             }
         };
         return [
@@ -891,8 +899,8 @@ clientside_callback(
                     font: { color: "white", family: "Merriweather Sans" }
                 },
                 margin: { l: 120, r: 10, t: 40, b: 50 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131"
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b"
             }
         };
 
@@ -989,8 +997,8 @@ clientside_callback(
                     font: { color: "white", family: "Merriweather Sans" }
                 },
                 margin: { l: 140, r: 10, t: 40, b: 60 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131"
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b"
             }
         };
 
@@ -1144,8 +1152,8 @@ clientside_callback(
                     tickcolor: "white"
                 },
                 margin: { l: 70, r: 10, t: 40, b: 50 },
-                plot_bgcolor: "#010131",
-                paper_bgcolor: "#010131",
+                plot_bgcolor: "#08306b",
+                paper_bgcolor: "#08306b",
                 legend: { font: { color: "white", family: "Merriweather Sans" } }
             }
         };
