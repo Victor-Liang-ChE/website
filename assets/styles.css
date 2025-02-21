@@ -146,3 +146,36 @@ html, body {
 .slider-purple .rc-slider-handle {
     border-color: purple;
 }
+
+/* FOR LATEX TO PYTHON CONVERTER */
+.mathquill-field {
+    background-color: #ffffff !important;
+}
+.mq-editable-field {
+    color: #000000 !important;
+}
+
+/* Overlay placeholder styling */
+.mq-placeholder {
+    position: absolute;
+    top: 10px;  /* adjust to match your padding */
+    left: 10px; /* adjust to match your padding */
+    color: #aaa;
+    pointer-events: none;
+    font-size: 16px;
+}
+
+/* White background on the MathQuill input field */
+#mathquill-input {
+    background-color: #ffffff !important;
+}
+
+/* Converted Python expression style */
+.converted-code {
+    white-space: pre-wrap; /* allow line wrapping */
+    word-wrap: break-word;
+    display: inline-block;
+    background-color: #f8f8f8; /* ensure consistent background */
+    color: #000000;   /* set text color to black */
+    padding: 5px;
+}

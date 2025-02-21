@@ -6,8 +6,11 @@ import plotly.express as px
 px.defaults.template = "ggplot2"
 
 external_css = ["/assets/styles.css"]
+# inline scripts dont work (html.Script dosn't work, cdnjs has to be loaded here or local script has to be in assets)
+external_scripts = ["https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js", \
+                    "https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"]
 
-app = Dash(__name__, pages_folder='pages', use_pages=True, external_stylesheets=external_css, suppress_callback_exceptions=True)
+app = Dash(__name__, pages_folder='pages', use_pages=True, external_stylesheets=external_css, external_scripts=external_scripts,suppress_callback_exceptions=True)
 
 navbar_pages = ['About', 'McCabe-Thiele', 'Reaction Kinetics', 'Process Dynamics', 'PID Tuning', 'Miscellaneous']
 # nav bar ordering system determined by the number in the filename, e.g. 7_processdynamics.py
@@ -50,6 +53,8 @@ def update_title(pathname):
         return 'Japanese Lyrics Analyzer'
     elif pathname == '/chemeecon':
         return 'Chemical Engineering Economics'
+    elif pathname == '/latex-converter':
+        return 'LaTex Converter'
     else:
         return 'My Website'
 
