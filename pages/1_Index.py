@@ -1,6 +1,5 @@
 import dash
 from dash import html
-import random
 
 dash.register_page(__name__, path='/', name="About")
 

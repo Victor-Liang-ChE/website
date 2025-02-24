@@ -54,7 +54,7 @@ def update_title(pathname):
     elif pathname == '/chemeecon':
         return 'Chemical Engineering Economics'
     elif pathname == '/latex-converter':
-        return 'LaTex Converter'
+        return 'LaTeX Constructor and Converter'
     else:
         return 'My Website'
 

@@ -13,7 +13,7 @@ layout = html.Div([
             href="/menu"),
         dcc.Link(html.Div("Chemical Engineering Economics", className="box"), \
             href="/chemeecon"),
-        dcc.Link(html.Div("LaTex Converter", className="box"), \
+        dcc.Link(html.Div("LaTeX Constructor and Converter", className="box"), \
             href="/latex-converter"),
     ], className="box-container", style={'display': 'grid', 'gridTemplateColumns': 'repeat(3, 1fr)', 'gap': '10px'})
 ], className="container")
