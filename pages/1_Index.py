@@ -13,10 +13,29 @@ ucsb_logo_url = "https://upload.wikimedia.org/wikipedia/commons/d/d4/UC_Santa_Ba
 # Gonna move the quirky stuff to a separate about page, this should be the page for employers lmao
 sentences = [
     "I'm a Chemical Engineer. 🔧",
-    "I develop simulations for chemical engineering concepts to solve problems more efficiently. 🤓",
-    "These simulations feature an interactive McCabe-Thiele Plot, reaction kinetics concentration profiles, process dynamics response profiles, and PID controllers. 📈",
-    "Languages and Frameworks: Python, JavaScript, HTML, CSS, and Dash. 💻",
-    "Python Packages: NumPy, SciPy, Pandas, Matplotlib, scikit-learn, Plotly, RegEx, Control, and BeautifulSoup4. 📦",
+    html.P(["I develop ", html.B("simulations", style={
+               'borderRadius': '4px',  # Rounded corners
+               'fontSize': '1.2em',  # Slightly larger text
+           }), " for chemical engineering concepts to solve problems more efficiently. 🤓"]),
+    html.P([
+        "Languages and Frameworks: ",
+        html.Img(src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg", 
+                title="Python",
+                style={'height': '25px', 'margin': '0 5px', 'vertical-align': 'middle'}),
+        html.Img(src="https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png", 
+                title="JavaScript",
+                style={'height': '25px', 'margin': '0 5px', 'vertical-align': 'middle'}),
+        html.Img(src="https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg", 
+                title="HTML5",
+                style={'height': '30px', 'margin': '0 5px', 'vertical-align': 'middle'}),
+        html.Img(src="https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg", 
+                title="CSS3",
+                style={'height': '35px', 'margin': '0 5px', 'vertical-align': 'middle'}),
+        html.Img(src="https://dash.gallery/dash-cytoscape-phylogeny/assets/dash-logo.png", 
+                title="Dash",
+                style={'height': '30px', 'margin': '0 5px', 'vertical-align': 'middle'})
+    ]),
+    "Python Packages: NumPy, SciPy, Pandas, Matplotlib, Scikit-learn, Plotly, RegEx, Control, and BeautifulSoup4. 📦",
     html.P([
         "Currently a senior at the University of California, Santa Barbara. ",
         html.Img(src=ucsb_logo_url, style={'height': '20px'})

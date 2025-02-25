@@ -95,16 +95,29 @@ def latex2python(latex_str: str) -> str:
     expr = expr.replace('{', '(').replace('}', ')').replace('^', '**')
     return expr
 
+# def python_to_numpy(expr: str) -> str:
+#     expr = re.sub(r'([a-zA-Z0-9_.()]+)\*\*\(([^)]+)\)', r'np.power(\1, \2)', expr)
+#     expr = re.sub(r'\be\*\*\(([^)]+)\)', r'np.exp(\1)', expr)
+#     expr = re.sub(r'(?<!np\.)\bln\(([^)]+)\)', r'np.log(\1)', expr)
+#     expr = re.sub(r'(?<!np\.)\blog\(([^)]+)\)', r'np.log10(\1)', expr)
+#     expr = re.sub(r'\b(sin|cos|tan|sinh|cosh|tanh|arcsin|arccos|arctan|arcsinh|arccosh|arctanh)\(([^)]+)\)', r'np.\1(\2)', expr)
+#     expr = re.sub(r'(\S+)\s*\^\{\s*([^}]+?)\s*\}', r'\1**(\2)', expr)
+    
+#     # Simple substitution: replace { with (, } with ), and ^ with **
+#     expr = expr.replace('{', '(').replace('}', ')').replace('^', '**')
+#     return expr
+
 def python_to_numpy(expr: str) -> str:
-    expr = re.sub(r'([0-9.]+)\*\*\(([^)]+)\)', r'np.power(\1, (\2))', expr)
+    # First handle all power operations recursively
     expr = re.sub(r'\be\*\*\(([^)]+)\)', r'np.exp(\1)', expr)
+    while '**' in expr:
+        expr = re.sub(r'([a-zA-Z0-9_.()]+)\*\*([a-zA-Z0-9_.()]+|\([^)]+\))', r'np.power(\1, \2)', expr)
+    
+    # Then handle other numpy conversions
     expr = re.sub(r'(?<!np\.)\bln\(([^)]+)\)', r'np.log(\1)', expr)
     expr = re.sub(r'(?<!np\.)\blog\(([^)]+)\)', r'np.log10(\1)', expr)
     expr = re.sub(r'\b(sin|cos|tan|sinh|cosh|tanh|arcsin|arccos|arctan|arcsinh|arccosh|arctanh)\(([^)]+)\)', r'np.\1(\2)', expr)
-    expr = re.sub(r'(\S+)\s*\^\{\s*([^}]+?)\s*\}', r'\1**(\2)', expr)
     
-    # Simple substitution: replace { with (, } with ), and ^ with **
-    expr = expr.replace('{', '(').replace('}', ')').replace('^', '**')
     return expr
 
 def latex2numpy(latex_str: str) -> str:
