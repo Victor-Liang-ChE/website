@@ -1,0 +1,11 @@
+/* Override navbar font */
+.navbar, .navbar a {
+  font-family: arcade, monospace !important;
+}
+
+/* Additional navbar hover effects for the retro theme */
+.navbar a:hover {
+  text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF !important;
+  color: #FF00FF !important;
+  transition: all 0.3s ease;
+}
