@@ -9,6 +9,89 @@ from dash.exceptions import PreventUpdate
 
 dash.register_page(__name__, path='/chemtools', name="Chemistry Tools")
 
+# Function to format chemical formulas with subscripts for display
+def format_chemical_formula_components(formula):
+    """Convert a chemical formula into a list of components (regular text and subscripts)
+    Returns a list of tuples where each tuple is ('text', is_subscript)
+    For example, H2O would return [('H', False), ('2', True), ('O', False)]
+    """
+    # First, handle the case where there's a leading coefficient (like 2H2O)
+    leading_coef_match = re.match(r'^(\d+)([A-Za-z(].*)', formula)
+    coefficient = ""
+    chemical_part = formula
+    
+    if leading_coef_match:
+        coefficient = leading_coef_match.group(1)
+        chemical_part = leading_coef_match.group(2)
+    
+    components = []
+    # Add the coefficient if it exists
+    if coefficient:
+        components.append((coefficient, False))
+    
+    # Process the chemical part
+    i = 0
+    while i < len(chemical_part):
+        char = chemical_part[i]
+        
+        # Case 1: Opening parenthesis, find the matching closing and look for subscript
+        if char == '(':
+            # Find the closing parenthesis
+            paren_depth = 1
+            j = i + 1
+            while j < len(chemical_part) and paren_depth > 0:
+                if chemical_part[j] == '(':
+                    paren_depth += 1
+                elif chemical_part[j] == ')':
+                    paren_depth -= 1
+                j += 1
+            
+            # Get the content inside parentheses
+            paren_content = chemical_part[i:j]
+            components.append((paren_content, False))
+            i = j
+            
+            # Check if there's a subscript after the parenthesis
+            if i < len(chemical_part) and chemical_part[i].isdigit():
+                subscript_start = i
+                while i < len(chemical_part) and chemical_part[i].isdigit():
+                    i += 1
+                subscript = chemical_part[subscript_start:i]
+                components.append((subscript, True))
+        
+        # Case 2: Letter followed by digits (e.g., H2)
+        elif char.isalpha():
+            components.append((char, False))
+            i += 1
+            
+            # Check for subscripts (digits after a letter)
+            if i < len(chemical_part) and chemical_part[i].isdigit():
+                subscript_start = i
+                while i < len(chemical_part) and chemical_part[i].isdigit():
+                    i += 1
+                subscript = chemical_part[subscript_start:i]
+                components.append((subscript, True))
+        
+        # Case 3: Any other character
+        else:
+            components.append((char, False))
+            i += 1
+            
+    return components
+
+def create_formula_display(formula):
+    """Create an HTML display for a chemical formula with proper subscripts"""
+    components = format_chemical_formula_components(formula)
+    
+    result = []
+    for text, is_subscript in components:
+        if is_subscript:
+            result.append(html.Sub(text))
+        else:
+            result.append(text)
+    
+    return result
+
 # Function to parse chemical reaction equation
 def parse_reaction_equation(equation):
     # Remove spaces and split by arrow
@@ -25,22 +108,23 @@ def parse_reaction_equation(equation):
     # Parse coefficients and compounds for reactants
     parsed_reactants = []
     for reactant in reactants:
-        match = re.match(r"^(\d*)(\w+)$", reactant)
+        # Match pattern for coefficient and compound, handling complex formulas with parentheses
+        match = re.match(r"^(\d*)([A-Za-z0-9()]+)$", reactant)
         if not match:
             return None, f"Invalid reactant format: {reactant}"
         coef, compound = match.groups()
         coef = int(coef) if coef else 1
-        parsed_reactants.append({"compound": compound, "coefficient": coef})
+        parsed_reactants.append({"compound": compound, "coefficient": coef, "display": format_chemical_formula_components(reactant)})
     
     # Parse coefficients and compounds for products
     parsed_products = []
     for product in products:
-        match = re.match(r"^(\d*)(\w+)$", product)
+        match = re.match(r"^(\d*)([A-Za-z0-9()]+)$", product)
         if not match:
             return None, f"Invalid product format: {product}"
         coef, compound = match.groups()
         coef = int(coef) if coef else 1
-        parsed_products.append({"compound": compound, "coefficient": coef})
+        parsed_products.append({"compound": compound, "coefficient": coef, "display": format_chemical_formula_components(product)})
     
     return {
         "reactants": parsed_reactants,
@@ -138,8 +222,6 @@ def calculate_stoichiometry(reaction_data, input_data):
 
 # Define the layout for the stoichiometry calculator
 stoichiometry_calculator = html.Div([
-    html.H2("Stoichiometry Calculator"),
-    
     html.Div([
         html.Label("Chemical Reaction Equation (e.g., '2H2 + O2 -> 2H2O'):"),
         dcc.Input(
@@ -173,8 +255,6 @@ placeholder_tool_2 = html.Div([
 
 # Main layout with tabs for different chemistry tools
 layout = html.Div([
-    html.H1("Chemistry Tools"),
-    
     dcc.Dropdown(
         id='chem-tool-selector',
         options=[
@@ -224,6 +304,44 @@ def parse_reaction(n_clicks, equation):
     if parsed_reaction is None:
         return message, {"display": "none"}, None, {"display": "none"}
     
+    # Create the formatted reaction equation display with proper pluses and arrow
+    eq_parts = []
+    
+    # Add reactants with plus signs between them
+    for i, reactant in enumerate(parsed_reaction["reactants"]):
+        if i > 0:
+            eq_parts.append(" + ")  # Add plus between reactants
+            
+        # Add coefficient if > 1
+        if reactant["coefficient"] > 1:
+            eq_parts.append(str(reactant["coefficient"]))
+        
+        # Add formula with subscripts
+        eq_parts.extend(create_formula_display(reactant["compound"]))
+    
+    # Add arrow
+    eq_parts.append(" → ")
+    
+    # Add products with plus signs between them
+    for i, product in enumerate(parsed_reaction["products"]):
+        if i > 0:
+            eq_parts.append(" + ")  # Add plus between products
+            
+        # Add coefficient if > 1
+        if product["coefficient"] > 1:
+            eq_parts.append(str(product["coefficient"]))
+        
+        # Add formula with subscripts
+        eq_parts.extend(create_formula_display(product["compound"]))
+    
+    parsed_output = html.Div([
+        html.H3("Parsed Reaction:"),
+        html.Div(
+            eq_parts,
+            style={"fontSize": "1.2em", "marginBottom": "15px"}
+        )
+    ])
+    
     # Create input fields for reactants and products
     reactants_inputs = []
     for reactant in parsed_reaction["reactants"]:
@@ -231,7 +349,10 @@ def parse_reaction(n_clicks, equation):
         molar_mass = get_molar_mass(compound)
         
         reactants_inputs.append(html.Div([
-            html.H4(f"Reactant: {compound}"),
+            html.H4([
+                "Reactant: ", 
+                *create_formula_display(compound)
+            ]),
             html.Div([
                 html.Label(f"Molar Mass: {molar_mass:.2f} g/mol" if molar_mass else "Molar Mass: Unknown"),
                 html.Div([
@@ -263,120 +384,27 @@ def parse_reaction(n_clicks, equation):
         molar_mass = get_molar_mass(compound)
         
         products_display.append(html.Div([
-            html.H4(f"Product: {compound}"),
+            html.H4([
+                "Product: ", 
+                *create_formula_display(compound)
+            ]),
             html.Label(f"Molar Mass: {molar_mass:.2f} g/mol" if molar_mass else "Molar Mass: Unknown")
         ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px"}))
     
-    # Store reaction data
-    store = dcc.Store(id='reaction-data-store', data=parsed_reaction)
-    
-    # Add clientside callback for input field interactions
-    clientside_script = """
-    function updateInputs(molesInputs, gramsInputs) {
-        const outputs = [];
-        
-        for (let i = 0; i < molesInputs.length; i++) {
-            const moles = molesInputs[i];
-            const disabled = moles !== null && moles !== "";
-            outputs.push(disabled);
-        }
-        
-        for (let i = 0; i < gramsInputs.length; i++) {
-            const grams = gramsInputs[i];
-            const disabled = grams !== null && grams !== "";
-            outputs.push(disabled);
-        }
-        
-        return outputs;
-    }
-    """
-    
-    # Create pattern-matching outputs for enabling/disabling fields
-    output_list = []
-    for reactant in parsed_reaction["reactants"]:
-        compound = reactant["compound"]
-        output_list.extend([
-            Output({"type": "grams-input", "compound": compound}, "disabled"),
-            Output({"type": "moles-input", "compound": compound}, "disabled")
+    # Combine reactants inputs and products display
+    compound_inputs = html.Div([
+        dcc.Store(id='reaction-data-store', data=parsed_reaction),
+        html.Div([
+            html.H3("Reactants:"),
+            html.Div(reactants_inputs)
+        ]),
+        html.Div([
+            html.H3("Products:"),
+            html.Div(products_display)
         ])
-    
-    # Create pattern-matching inputs
-    input_list = []
-    for reactant in parsed_reaction["reactants"]:
-        compound = reactant["compound"]
-        input_list.extend([
-            Input({"type": "moles-input", "compound": compound}, "value"),
-            Input({"type": "grams-input", "compound": compound}, "value")
-        ])
-    
-    # Add clientside callback
-    clientside_callback_script = clientside_script + "\n" + f"""
-    function(molesInputs, gramsInputs) {{
-        const outputs = [];
-        
-        // Process pairs of moles and grams inputs
-        for (let i = 0; i < {len(parsed_reaction["reactants"])}; i++) {{
-            const molesValue = molesInputs[i];
-            const gramsValue = gramsInputs[i];
-            
-            // Disable grams if moles has value
-            outputs.push(molesValue !== null && molesValue !== "" ? true : false);
-            
-            // Disable moles if grams has value
-            outputs.push(gramsValue !== null && gramsValue !== "" ? true : false);
-        }}
-        
-        return outputs;
-    }}
-    """
-    
-    clientside_callback_div = html.Div([
-        dcc.Store(id="clientside-callback-store", data={"script": clientside_callback_script}),
     ])
     
-    # Combine all UI elements
-    all_inputs = [
-        html.H3("Reactants"),
-        html.Div(reactants_inputs),
-        html.H3("Products"),
-        html.Div(products_display),
-        store,
-        clientside_callback_div
-    ]
-    
-    success_message = html.Div([
-        html.P("Reaction successfully parsed. Enter the amounts for at least one reactant."),
-    ], style={"color": "green", "marginBottom": "10px"})
-    
-    return success_message, {"marginTop": "20px", "display": "block"}, all_inputs, {"marginTop": "20px", "display": "block"}
-
-# Add clientside callback for disabling inputs
-clientside_callback(
-    """
-    function(allMolesInputs, allGramsInputs) {
-        const outputs = [];
-        const numReactants = allMolesInputs.length;
-        
-        // Process pairs of moles and grams inputs
-        for (let i = 0; i < numReactants; i++) {
-            const molesValue = allMolesInputs[i];
-            const gramsValue = allGramsInputs[i];
-            
-            // Disable grams if moles has value
-            outputs.push(molesValue !== null && molesValue !== "");
-            
-            // Disable moles if grams has value
-            outputs.push(gramsValue !== null && gramsValue !== "");
-        }
-        
-        return outputs;
-    }
-    """,
-    [Output({"type": "grams-input", "compound": dash.ALL}, "disabled"),
-     Output({"type": "moles-input", "compound": dash.ALL}, "disabled")],
-    [Input({"type": "moles-input", "compound": dash.ALL}, "value"),
-     Input({"type": "grams-input", "compound": dash.ALL}, "value")],
-)
+    return parsed_output, {"display": "block", "marginTop": "20px"}, compound_inputs, {"display": "block", "marginTop": "20px"}
 
 @callback(
     Output("calculation-results", "children"),

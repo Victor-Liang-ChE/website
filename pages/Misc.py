@@ -15,6 +15,8 @@ layout = html.Div([
             href="/chemeecon"),
         dcc.Link(html.Div("LaTeX Constructor and Converter", className="box"), \
             href="/latex-converter"),
+        dcc.Link(html.Div("Sandbox", className="box"), \
+            href="/sandbox"),
         dcc.Link(html.Div("Chemistry Tools", className="box"), \
             href="/chemtools"),
     ], className="box-container", style={'display': 'grid', 'gridTemplateColumns': 'repeat(3, 1fr)', 'gap': '10px'})
