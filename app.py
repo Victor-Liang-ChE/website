@@ -19,14 +19,44 @@ app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Br(),
     html.P(id='page-title', className="text-white text-center fw-bold fs-1"),
-    html.Nav([
-        html.Div([
-            dcc.Link(page['name'], href=page["relative_path"], className="nav-link text-white")
-            for page in dash.page_registry.values() if page['name'] in navbar_pages
-        ], className="navbar bg-blue")
-    ]),
+    html.Div([
+        html.Nav([
+            html.Div([
+                dcc.Link(page['name'], href=page["relative_path"], className="nav-link text-white")
+                for page in dash.page_registry.values() if page['name'] in navbar_pages
+            ], className="navbar bg-blue")
+        ]),
+        # Stick figure positioned on top right of navbar
+        html.Div(id="stick-figure-container", className="stick-figure-container"),
+    ], className="navbar-wrapper"),
     dash.page_container
 ], className="bg-dark-blue", style={'width': '100%', 'height': '100%', 'margin': '0', 'padding': '0'})
+
+# Add the HTML for the stick figure using the callback
+@app.callback(
+    Output('stick-figure-container', 'children'),
+    Input('url', 'pathname')
+)
+def load_stick_figure(pathname):
+    stick_figure_html = html.Div([
+        html.Div([
+            html.Div([
+                html.Div(className="cap"),
+                html.Div([
+                    html.Div(id="left-eye", className="eye"),
+                    html.Div(id="right-eye", className="eye")
+                ], className="eyes"),
+                html.Div(className="mouth")
+            ], className="head"),
+            html.Div(className="torso"),
+            html.Div([html.Div(className="hand left-hand")], className="arm left-arm"),
+            html.Div([html.Div(className="hand right-hand")], className="arm right-arm"),
+            html.Div([html.Div(className="foot left-foot")], className="leg left-leg"),
+            html.Div([html.Div(className="foot right-foot")], className="leg right-leg")
+        ], id="robot", className="stick-figure")
+    ])
+    
+    return stick_figure_html
 
 @app.callback(
     Output('page-title', 'children'),
