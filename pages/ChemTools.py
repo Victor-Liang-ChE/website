@@ -1,4 +1,4 @@
-from dash import html, dcc, callback, Output, Input, State, dash_table
+from dash import html, dcc, callback, Output, Input, State, dash_table, clientside_callback
 import dash
 import thermo
 import re
@@ -228,11 +228,10 @@ def parse_reaction(n_clicks, equation):
     reactants_inputs = []
     for reactant in parsed_reaction["reactants"]:
         compound = reactant["compound"]
-        coef = reactant["coefficient"]
         molar_mass = get_molar_mass(compound)
         
         reactants_inputs.append(html.Div([
-            html.H4(f"Reactant: {coef}{compound}"),
+            html.H4(f"Reactant: {compound}"),
             html.Div([
                 html.Label(f"Molar Mass: {molar_mass:.2f} g/mol" if molar_mass else "Molar Mass: Unknown"),
                 html.Div([
@@ -261,16 +260,79 @@ def parse_reaction(n_clicks, equation):
     products_display = []
     for product in parsed_reaction["products"]:
         compound = product["compound"]
-        coef = product["coefficient"]
         molar_mass = get_molar_mass(compound)
         
         products_display.append(html.Div([
-            html.H4(f"Product: {coef}{compound}"),
+            html.H4(f"Product: {compound}"),
             html.Label(f"Molar Mass: {molar_mass:.2f} g/mol" if molar_mass else "Molar Mass: Unknown")
         ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px"}))
     
     # Store reaction data
     store = dcc.Store(id='reaction-data-store', data=parsed_reaction)
+    
+    # Add clientside callback for input field interactions
+    clientside_script = """
+    function updateInputs(molesInputs, gramsInputs) {
+        const outputs = [];
+        
+        for (let i = 0; i < molesInputs.length; i++) {
+            const moles = molesInputs[i];
+            const disabled = moles !== null && moles !== "";
+            outputs.push(disabled);
+        }
+        
+        for (let i = 0; i < gramsInputs.length; i++) {
+            const grams = gramsInputs[i];
+            const disabled = grams !== null && grams !== "";
+            outputs.push(disabled);
+        }
+        
+        return outputs;
+    }
+    """
+    
+    # Create pattern-matching outputs for enabling/disabling fields
+    output_list = []
+    for reactant in parsed_reaction["reactants"]:
+        compound = reactant["compound"]
+        output_list.extend([
+            Output({"type": "grams-input", "compound": compound}, "disabled"),
+            Output({"type": "moles-input", "compound": compound}, "disabled")
+        ])
+    
+    # Create pattern-matching inputs
+    input_list = []
+    for reactant in parsed_reaction["reactants"]:
+        compound = reactant["compound"]
+        input_list.extend([
+            Input({"type": "moles-input", "compound": compound}, "value"),
+            Input({"type": "grams-input", "compound": compound}, "value")
+        ])
+    
+    # Add clientside callback
+    clientside_callback_script = clientside_script + "\n" + f"""
+    function(molesInputs, gramsInputs) {{
+        const outputs = [];
+        
+        // Process pairs of moles and grams inputs
+        for (let i = 0; i < {len(parsed_reaction["reactants"])}; i++) {{
+            const molesValue = molesInputs[i];
+            const gramsValue = gramsInputs[i];
+            
+            // Disable grams if moles has value
+            outputs.push(molesValue !== null && molesValue !== "" ? true : false);
+            
+            // Disable moles if grams has value
+            outputs.push(gramsValue !== null && gramsValue !== "" ? true : false);
+        }}
+        
+        return outputs;
+    }}
+    """
+    
+    clientside_callback_div = html.Div([
+        dcc.Store(id="clientside-callback-store", data={"script": clientside_callback_script}),
+    ])
     
     # Combine all UI elements
     all_inputs = [
@@ -278,7 +340,8 @@ def parse_reaction(n_clicks, equation):
         html.Div(reactants_inputs),
         html.H3("Products"),
         html.Div(products_display),
-        store
+        store,
+        clientside_callback_div
     ]
     
     success_message = html.Div([
@@ -286,6 +349,34 @@ def parse_reaction(n_clicks, equation):
     ], style={"color": "green", "marginBottom": "10px"})
     
     return success_message, {"marginTop": "20px", "display": "block"}, all_inputs, {"marginTop": "20px", "display": "block"}
+
+# Add clientside callback for disabling inputs
+clientside_callback(
+    """
+    function(allMolesInputs, allGramsInputs) {
+        const outputs = [];
+        const numReactants = allMolesInputs.length;
+        
+        // Process pairs of moles and grams inputs
+        for (let i = 0; i < numReactants; i++) {
+            const molesValue = allMolesInputs[i];
+            const gramsValue = allGramsInputs[i];
+            
+            // Disable grams if moles has value
+            outputs.push(molesValue !== null && molesValue !== "");
+            
+            // Disable moles if grams has value
+            outputs.push(gramsValue !== null && gramsValue !== "");
+        }
+        
+        return outputs;
+    }
+    """,
+    [Output({"type": "grams-input", "compound": dash.ALL}, "disabled"),
+     Output({"type": "moles-input", "compound": dash.ALL}, "disabled")],
+    [Input({"type": "moles-input", "compound": dash.ALL}, "value"),
+     Input({"type": "grams-input", "compound": dash.ALL}, "value")],
+)
 
 @callback(
     Output("calculation-results", "children"),
@@ -338,7 +429,7 @@ def perform_calculation(n_clicks, reaction_data, moles_values, grams_values, mol
     # Add limiting reactant info
     result_sections.append(html.Div([
         html.H3("Analysis Results"),
-        html.P(f"Limiting Reactant: {results['limiting_reactant']}"),
+        html.P(f"Limiting Reactant: {results['limiting_reactant']}", style={"color": "white"}),
     ]))
     
     # Create table data for reactants
@@ -410,7 +501,7 @@ def perform_calculation(n_clicks, reaction_data, moles_values, grams_values, mol
             data=reactant_rows,
             columns=reactant_columns,
             style_table={'overflowX': 'auto'},
-            style_cell={'textAlign': 'center'}
+            style_cell={'textAlign': 'center', 'color': 'black'}
         )
     ]))
     
@@ -420,7 +511,7 @@ def perform_calculation(n_clicks, reaction_data, moles_values, grams_values, mol
             data=product_rows,
             columns=product_columns,
             style_table={'overflowX': 'auto'},
-            style_cell={'textAlign': 'center'}
+            style_cell={'textAlign': 'center', 'color': 'black'}
         )
     ]))
     
