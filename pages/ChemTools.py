@@ -262,6 +262,7 @@ layout = html.Div([
         value='stoichiometry',
         clearable=False,
         style={"width": "100%", "marginBottom": "20px", "color": "black"}
+        style={"width": "100%", "marginBottom": "20px", "color": "black"}
     ),
     
     html.Div(id='chem-tool-content')
@@ -304,10 +305,12 @@ def parse_reaction(n_clicks, equation):
     # Create the formatted reaction equation display with proper pluses and arrow
     eq_parts = []
     eq_parts.append("Reaction: ")  # Add inline label
+    eq_parts.append("Reaction: ")  # Add inline label
     
     # Add reactants with plus signs between them
     for i, reactant in enumerate(parsed_reaction["reactants"]):
         if i > 0:
+            eq_parts.append(" + ")
             eq_parts.append(" + ")
             
         if reactant["coefficient"] > 1:
@@ -318,6 +321,7 @@ def parse_reaction(n_clicks, equation):
     
     for i, product in enumerate(parsed_reaction["products"]):
         if i > 0:
+            eq_parts.append(" + ")
             eq_parts.append(" + ")
             
         if product["coefficient"] > 1:
@@ -334,7 +338,21 @@ def parse_reaction(n_clicks, equation):
             "width": "100%"
         }
     )
+    parsed_output = html.Div(
+        eq_parts,
+        style={
+            "fontSize": "1.2em", 
+            "marginBottom": "0px", 
+            "marginTop": "20px", 
+            "display": "inline-block",
+            "width": "100%"
+        }
+    )
     
+    # Create compound boxes with input fields for reactants and products
+    compound_inputs = []
+    
+    # Add reactants
     # Create compound boxes with input fields for reactants and products
     compound_inputs = []
     
@@ -343,6 +361,11 @@ def parse_reaction(n_clicks, equation):
         compound = reactant["compound"]
         molar_mass = get_molar_mass(compound)
         
+        compound_inputs.append(html.Div([
+            html.Div([
+                *create_formula_display(compound),
+                f" ({molar_mass:.2f} g/mol)" if molar_mass else ""
+            ], style={"fontSize": "1.2em", "marginBottom": "10px"}),
         compound_inputs.append(html.Div([
             html.Div([
                 *create_formula_display(compound),
@@ -397,6 +420,7 @@ def parse_reaction(n_clicks, equation):
         ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px"}))
     
     # Add products
+    # Add products
     for product in parsed_reaction["products"]:
         compound = product["compound"]
         molar_mass = get_molar_mass(compound)
@@ -414,14 +438,43 @@ def parse_reaction(n_clicks, equation):
                 html.Span(id={"type": "produced-grams", "compound": compound}, children="", style={"visibility": "hidden"}),
                 html.Span(" grams)", id={"type": "produced-paren2", "compound": compound}, style={"visibility": "hidden"})
             ])
+        compound_inputs.append(html.Div([
+            html.Div([
+                *create_formula_display(compound),
+                f" ({molar_mass:.2f} g/mol)" if molar_mass else ""
+            ], style={"fontSize": "1.2em", "marginBottom": "10px"}),
+            html.Div([
+                html.Span("Produced: ", id={"type": "produced-text", "compound": compound}, style={"marginRight": "5px", "visibility": "hidden"}),
+                html.Span(id={"type": "produced-moles", "compound": compound}, children="", style={"visibility": "hidden"}),
+                html.Span(" moles ", id={"type": "produced-moles-text", "compound": compound}, style={"marginRight": "5px", "visibility": "hidden"}),
+                html.Span("(", id={"type": "produced-paren1", "compound": compound}, style={"visibility": "hidden"}),
+                html.Span(id={"type": "produced-grams", "compound": compound}, children="", style={"visibility": "hidden"}),
+                html.Span(" grams)", id={"type": "produced-paren2", "compound": compound}, style={"visibility": "hidden"})
+            ])
         ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px"}))
     
+    # Store data for later use
+    inputs_container = html.Div([
     # Store data for later use
     inputs_container = html.Div([
         dcc.Store(id='reaction-data-store', data=parsed_reaction),
         html.Div(compound_inputs)
     ])
+        html.Div(compound_inputs)
+    ])
     
+    return parsed_output, {"display": "block", "marginTop": "20px"}, inputs_container, {"display": "block", "marginTop": "20px"}
+
+def html_to_markdown_subscripts(components):
+    """Convert formula components to markdown format with HTML subscripts
+    For example: H2O becomes H<sub>2</sub>O"""
+    result = ""
+    for text, is_subscript in components:
+        if is_subscript:
+            result += f"<sub>{text}</sub>"
+        else:
+            result += text
+    return result
     return parsed_output, {"display": "block", "marginTop": "20px"}, inputs_container, {"display": "block", "marginTop": "20px"}
 
 def html_to_markdown_subscripts(components):
@@ -462,7 +515,46 @@ def html_to_markdown_subscripts(components):
         Output({"type": "produced-paren1", "compound": dash.ALL}, "style"),
         Output({"type": "produced-paren2", "compound": dash.ALL}, "style"),
     ],
+    [
+        Output({"type": "used-moles", "compound": dash.ALL}, "children"),
+        Output({"type": "excess-moles", "compound": dash.ALL}, "children"),
+        Output({"type": "used-grams", "compound": dash.ALL}, "children"),
+        Output({"type": "excess-grams", "compound": dash.ALL}, "children"),
+        Output({"type": "produced-moles", "compound": dash.ALL}, "children"),
+        Output({"type": "produced-grams", "compound": dash.ALL}, "children"),
+        Output({"type": "limiting-indicator", "compound": dash.ALL}, "children"),
+        # Add new outputs for visibility
+        Output({"type": "used-moles", "compound": dash.ALL}, "style"),
+        Output({"type": "excess-moles", "compound": dash.ALL}, "style"),
+        Output({"type": "used-grams", "compound": dash.ALL}, "style"),
+        Output({"type": "excess-grams", "compound": dash.ALL}, "style"),
+        Output({"type": "produced-moles", "compound": dash.ALL}, "style"),
+        Output({"type": "produced-grams", "compound": dash.ALL}, "style"),
+        Output({"type": "limiting-indicator", "compound": dash.ALL}, "style"),
+        Output("calculation-results", "children", allow_duplicate=True),
+        Output({"type": "used-text-moles", "compound": dash.ALL}, "style"),
+        Output({"type": "used-text-grams", "compound": dash.ALL}, "style"),
+        Output({"type": "excess-text-moles", "compound": dash.ALL}, "style"),
+        Output({"type": "excess-text-grams", "compound": dash.ALL}, "style"),
+        Output({"type": "produced-text", "compound": dash.ALL}, "style"),
+        Output({"type": "produced-moles-text", "compound": dash.ALL}, "style"),
+        Output({"type": "produced-paren1", "compound": dash.ALL}, "style"),
+        Output({"type": "produced-paren2", "compound": dash.ALL}, "style"),
+    ],
     Input("calculate-button", "n_clicks"),
+    [
+        State("reaction-data-store", "data"),
+        State({"type": "moles-input", "compound": dash.ALL}, "value"),
+        State({"type": "grams-input", "compound": dash.ALL}, "value"),
+        State({"type": "moles-input", "compound": dash.ALL}, "id"),
+        State({"type": "grams-input", "compound": dash.ALL}, "id"),
+        State({"type": "used-moles", "compound": dash.ALL}, "id"),
+        State({"type": "excess-moles", "compound": dash.ALL}, "id"),
+        State({"type": "used-grams", "compound": dash.ALL}, "id"),
+        State({"type": "excess-grams", "compound": dash.ALL}, "id"),
+        State({"type": "produced-moles", "compound": dash.ALL}, "id"),
+        State({"type": "produced-grams", "compound": dash.ALL}, "id")
+    ],
     [
         State("reaction-data-store", "data"),
         State({"type": "moles-input", "compound": dash.ALL}, "value"),
@@ -483,7 +575,13 @@ def update_calculation_results(
     moles_ids, grams_ids, used_moles_ids, excess_moles_ids, 
     used_grams_ids, excess_grams_ids, produced_moles_ids, produced_grams_ids
 ):
+def update_calculation_results(
+    n_clicks, reaction_data, moles_values, grams_values, 
+    moles_ids, grams_ids, used_moles_ids, excess_moles_ids, 
+    used_grams_ids, excess_grams_ids, produced_moles_ids, produced_grams_ids
+):
     if not reaction_data:
+        raise PreventUpdate
         raise PreventUpdate
     
     # Prepare input data
@@ -496,6 +594,7 @@ def update_calculation_results(
             if compound not in input_data:
                 input_data[compound] = {}
             input_data[compound]["moles"] = moles
+            input_data[compound]["moles"] = moles
     
     # Process grams inputs
     for i, grams in enumerate(grams_values):
@@ -504,12 +603,39 @@ def update_calculation_results(
             if compound not in input_data:
                 input_data[compound] = {}
             input_data[compound]["grams"] = grams
+            input_data[compound]["grams"] = grams
     
     # Add molar mass data
     for compound in input_data:
         input_data[compound]["molar_mass"] = get_molar_mass(compound)
+        input_data[compound]["molar_mass"] = get_molar_mass(compound)
     
     results, message = calculate_stoichiometry(reaction_data, input_data)
+    if not results:
+        # Return empty strings for all outputs if calculation fails
+        empty_strings = [""] * len(used_moles_ids)
+        return empty_strings, empty_strings, empty_strings, empty_strings, empty_strings, empty_strings
+    
+    # Find if there is a true limiting reactant
+    moles_per_coef = []
+    for reactant in reaction_data["reactants"]:
+        compound = reactant["compound"]
+        if compound in results["reactants"]:
+            moles = results["reactants"][compound]["initial_moles"]
+            coef = reactant["coefficient"]
+            moles_per_coef.append(moles/coef)
+    
+    # Only mark as limiting if it's truly limiting (less moles/coef than others)
+    has_limiting = len(set([round(x, 6) for x in moles_per_coef])) > 1
+    
+    # Process results for reactants
+    used_moles_values = []
+    excess_moles_values = []
+    used_grams_values = []
+    excess_grams_values = []
+    
+    # Map compounds to their results
+    compound_results = {}
     if not results:
         # Return empty strings for all outputs if calculation fails
         empty_strings = [""] * len(used_moles_ids)
@@ -562,13 +688,148 @@ def update_calculation_results(
         compound = cid["compound"]
         data = compound_results.get(compound, {})
         excess_grams_values.append(data.get("excess_grams", ""))
+        compound_results[compound] = {
+            "used_moles": f"{data['used_moles']:.3f}",
+            "excess_moles": f"{data['excess_moles']:.3f}",
+            "used_grams": f"{data['used_grams']:.3f}" if "used_grams" in data else "N/A",
+            "excess_grams": f"{data['excess_grams']:.3f}" if "excess_grams" in data else "N/A"
+        }
+    
+    for cid in used_moles_ids:
+        compound = cid["compound"]
+        data = compound_results.get(compound, {})
+        used_moles_values.append(data.get("used_moles", ""))
+    
+    for cid in excess_moles_ids:
+        compound = cid["compound"]
+        data = compound_results.get(compound, {})
+        excess_moles_values.append(data.get("excess_moles", ""))
+    
+    for cid in used_grams_ids:
+        compound = cid["compound"]
+        data = compound_results.get(compound, {})
+        used_grams_values.append(data.get("used_grams", ""))
+    
+    for cid in excess_grams_ids:
+        compound = cid["compound"]
+        data = compound_results.get(compound, {})
+        excess_grams_values.append(data.get("excess_grams", ""))
     
     # Process results for products
     produced_moles_values = []
     produced_grams_values = []
     
     # Map product compounds to their results
+    # Process results for products
+    produced_moles_values = []
+    produced_grams_values = []
+    
+    # Map product compounds to their results
     for compound, data in results["products"].items():
+        molar_mass = input_data.get(compound, {}).get("molar_mass")
+        if molar_mass is None:
+            molar_mass = get_molar_mass(compound)
+        
+        produced_moles = data['produced_moles']
+        produced_grams = produced_moles * molar_mass if molar_mass else None
+        
+        compound_results[compound] = {
+            "produced_moles": f"{produced_moles:.3f}",
+            "produced_grams": f"{produced_grams:.3f}" if produced_grams is not None else "N/A"
+        }
+    
+    for cid in produced_moles_ids:
+        compound = cid["compound"]
+        data = compound_results.get(compound, {})
+        produced_moles_values.append(data.get("produced_moles", ""))
+        
+    for cid in produced_grams_ids:
+        compound = cid["compound"]
+        data = compound_results.get(compound, {})
+        produced_grams_values.append(data.get("produced_grams", ""))
+    
+    # Add limiting reactant indicators
+    limiting_indicators = []
+    for cid in used_moles_ids:  # Using used_moles_ids since it matches reactant order
+        compound = cid["compound"]
+        is_limiting = has_limiting and compound == results["limiting_reactant"]
+        limiting_indicators.append("(Limiting Reactant)" if is_limiting else "")
+
+    # Create visibility styles - need to create an array of style objects, not just one object
+    visible_style = {"visibility": "visible"}
+    n_reactants = len(used_moles_ids)
+    n_products = len(produced_moles_ids)
+    
+    # Create arrays of style objects for each element
+    used_moles_styles = [{"visibility": "visible"} for _ in range(n_reactants)]
+    excess_moles_styles = [{"visibility": "visible"} for _ in range(n_reactants)]
+    used_grams_styles = [{"visibility": "visible"} for _ in range(n_reactants)]
+    excess_grams_styles = [{"visibility": "visible"} for _ in range(n_reactants)]
+    produced_moles_styles = [{"visibility": "visible"} for _ in range(n_products)]
+    produced_grams_styles = [{"visibility": "visible"} for _ in range(n_products)]
+    limiting_indicator_styles = [{"visibility": "visible", "color": "red", "fontWeight": "bold"} for _ in range(n_reactants)]
+    
+    # Text styles
+    used_text_moles_styles = [{"visibility": "visible", "marginLeft": "10px"} for _ in range(n_reactants)]
+    used_text_grams_styles = [{"visibility": "visible", "marginLeft": "10px"} for _ in range(n_reactants)]
+    excess_text_moles_styles = [{"visibility": "visible", "marginLeft": "10px"} for _ in range(n_reactants)]
+    excess_text_grams_styles = [{"visibility": "visible", "marginLeft": "10px"} for _ in range(n_reactants)]
+    
+    # Product text styles
+    produced_text_styles = [{"visibility": "visible", "marginRight": "5px"} for _ in range(n_products)]
+    produced_moles_text_styles = [{"visibility": "visible", "marginRight": "5px"} for _ in range(n_products)]
+    produced_paren1_styles = [{"visibility": "visible"} for _ in range(n_products)]
+    produced_paren2_styles = [{"visibility": "visible"} for _ in range(n_products)]
+    
+    return (
+        used_moles_values, 
+        excess_moles_values, 
+        used_grams_values, 
+        excess_grams_values, 
+        produced_moles_values, 
+        produced_grams_values,
+        limiting_indicators,
+        used_moles_styles,
+        excess_moles_styles,
+        used_grams_styles,
+        excess_grams_styles,
+        produced_moles_styles,
+        produced_grams_styles,
+        limiting_indicator_styles,
+        None,  # for allow_duplicate output
+        used_text_moles_styles,
+        used_text_grams_styles,
+        excess_text_moles_styles,
+        excess_text_grams_styles,
+        produced_text_styles,
+        produced_moles_text_styles,
+        produced_paren1_styles,
+        produced_paren2_styles
+    )
+
+@callback(
+    [Output({"type": "moles-input", "compound": dash.ALL}, "disabled"),
+     Output({"type": "grams-input", "compound": dash.ALL}, "disabled")],
+    [Input({"type": "moles-input", "compound": dash.ALL}, "value"),
+     Input({"type": "grams-input", "compound": dash.ALL}, "value")],
+    prevent_initial_call=True
+)
+def disable_inputs(moles_values, grams_values):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    n_compounds = len(moles_values)
+    moles_disabled = [False] * n_compounds
+    grams_disabled = [False] * n_compounds
+    
+    for i in range(n_compounds):
+        if moles_values[i]:
+            grams_disabled[i] = True
+        elif grams_values[i]:
+            moles_disabled[i] = True
+    
+    return moles_disabled, grams_disabled
         molar_mass = input_data.get(compound, {}).get("molar_mass")
         if molar_mass is None:
             molar_mass = get_molar_mass(compound)
