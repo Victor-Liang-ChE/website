@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robotic Stick Figure</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: white;
+        }
+        .stick-figure {
+            position: relative;
+            width: 40px;
+            height: 60px;
+            background: white;
+            border: 2px solid black;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .head {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 2px solid black;
+            border-radius: 10px;
+            position: absolute;
+            top: -45px;
+            left: 0px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .cap {
+            width: 45px;
+            height: 15px;
+            background: black;
+            position: absolute;
+            top: -15px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .eyes {
+            display: flex;
+            justify-content: space-evenly;
+            width: 100%;
+            position: relative;
+        }
+        .eye {
+            width: 6px;
+            height: 12px;
+            background: black;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 0.1s ease-out;
+        }
+        .mouth {
+            width: 20px;
+            height: 2px;
+            background: black;
+            margin-top: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+        .stick-figure:hover .mouth {
+            width: 20px;
+            height: 10px;
+            border-radius: 50% / 0 0 100% 100%;
+            background: black;
+        }
+        .torso {
+            width: 35px;
+            height: 50px;
+            background: white;
+            border: 2px solid black;
+            border-radius: 10px;
+        }
+        .arm {
+            width: 10px;
+            height: 50px;
+            background: white;
+            border: 2px solid black;
+            position: absolute;
+            top: 20px;
+            border-radius: 5px;
+        }
+        .left-arm { left: -20px; }
+        .right-arm { right: -20px; }
+        .hand {
+            width: 20px;
+            height: 10px;
+            background: white;
+            border: 2px solid black;
+            position: absolute;
+            bottom: -5px;
+            border-radius: 5px;
+        }
+        .left-hand { left: -5px; }
+        .right-hand { right: -5px; }
+        .leg {
+            width: 15px;
+            height: 45px;
+            background: white;
+            border: 2px solid black;
+            position: absolute;
+            top: 55px;
+            border-radius: 5px;
+        }
+        .left-leg { left: -10px; }
+        .right-leg { right: -10px; }
+        .foot {
+            width: 20px;
+            height: 5px;
+            background: white;
+            border: 2px solid black;
+            position: absolute;
+            bottom: -5px;
+            border-radius: 3px;
+        }
+        .left-foot { left: -5px; }
+        .right-foot { right: -5px; }
+    </style>
+</head>
+<body>
+    <div class="stick-figure" id="robot">
+        <div class="head">
+            <div class="cap"></div>
+            <div class="eyes">
+                <div class="eye" id="left-eye"></div>
+                <div class="eye" id="right-eye"></div>
+            </div>
+            <div class="mouth"></div>
+        </div>
+        <div class="torso"></div>
+        <div class="arm left-arm"><div class="hand left-hand"></div></div>
+        <div class="arm right-arm"><div class="hand right-hand"></div></div>
+        <div class="leg left-leg"><div class="foot left-foot"></div></div>
+        <div class="leg right-leg"><div class="foot right-foot"></div></div>
+    </div>
+    <script>
+        const robot = document.getElementById("robot");
+        const eyes = document.querySelectorAll(".eye");
+        let isHovering = false;
+
+        robot.addEventListener("mouseenter", () => {
+            isHovering = true;
+            eyes.forEach(eye => {
+                eye.style.transition = "transform 0.3s ease-in-out";
+                eye.style.transform = "translate(0, 0)";
+            });
+        });
+
+        robot.addEventListener("mouseleave", () => {
+            isHovering = false;
+        });
+
+        document.addEventListener("mousemove", (event) => {
+            if (!isHovering) {
+                eyes.forEach(eye => {
+                    eye.style.transition = "transform 0.1s ease-out";
+                    const eyeRect = eye.getBoundingClientRect();
+                    const eyeX = eyeRect.left + eyeRect.width / 2;
+                    const eyeY = eyeRect.top + eyeRect.height / 2;
+                    const angle = Math.atan2(event.clientY - eyeY, event.clientX - eyeX);
+                    const offsetX = Math.cos(angle) * 3;
+                    const offsetY = Math.sin(angle) * 3;
+                    eye.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
