@@ -61,6 +61,29 @@ def load_stick_figure(pathname):
     else:
         # Return an empty div for other pages
         return html.Div()
+    # Only show stick figure on the sandbox page
+    if pathname == '/sandbox':
+        stick_figure_html = html.Div([
+            html.Div([
+                html.Div([
+                    html.Div(className="cap"),
+                    html.Div([
+                        html.Div(id="left-eye", className="eye"),
+                        html.Div(id="right-eye", className="eye")
+                    ], className="eyes"),
+                    html.Div(className="mouth")
+                ], className="head"),
+                html.Div(className="torso"),
+                html.Div([html.Div(className="hand left-hand")], className="arm left-arm"),
+                html.Div([html.Div(className="hand right-hand")], className="arm right-arm"),
+                html.Div([html.Div(className="foot left-foot")], className="leg left-leg"),
+                html.Div([html.Div(className="foot right-foot")], className="leg right-leg")
+            ], id="robot", className="stick-figure")
+        ])
+        return stick_figure_html
+    else:
+        # Return an empty div for other pages
+        return html.Div()
 
 @app.callback(
     Output('page-title', 'children'),
