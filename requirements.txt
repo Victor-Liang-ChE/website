@@ -28,3 +28,5 @@ regex==2024.11.6
 sudachidict_core==20250129
 pykakasi==2.3.0
 sympy==1.13.1
+rdkit==2024.9.5
+pubchempy==1.0.4
