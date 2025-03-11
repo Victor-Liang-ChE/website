@@ -26,7 +26,7 @@ app.layout = html.Div([
                 for page in dash.page_registry.values() if page['name'] in navbar_pages
             ], className="navbar bg-blue")
         ]),
-        # Stick figure positioned on top right of navbar only on sandbox page
+        # Stick figure positioned on top right of navbar
         html.Div(id="stick-figure-container", className="stick-figure-container"),
     ], className="navbar-wrapper"),
     dash.page_container
@@ -38,52 +38,25 @@ app.layout = html.Div([
     Input('url', 'pathname')
 )
 def load_stick_figure(pathname):
-    # Only show stick figure on the sandbox page
-    if pathname == '/sandbox':
-        stick_figure_html = html.Div([
+    stick_figure_html = html.Div([
+        html.Div([
             html.Div([
+                html.Div(className="cap"),
                 html.Div([
-                    html.Div(className="cap"),
-                    html.Div([
-                        html.Div(id="left-eye", className="eye"),
-                        html.Div(id="right-eye", className="eye")
-                    ], className="eyes"),
-                    html.Div(className="mouth")
-                ], className="head"),
-                html.Div(className="torso"),
-                html.Div([html.Div(className="hand left-hand")], className="arm left-arm"),
-                html.Div([html.Div(className="hand right-hand")], className="arm right-arm"),
-                html.Div([html.Div(className="foot left-foot")], className="leg left-leg"),
-                html.Div([html.Div(className="foot right-foot")], className="leg right-leg")
-            ], id="robot", className="stick-figure")
-        ])
-        return stick_figure_html
-    else:
-        # Return an empty div for other pages
-        return html.Div()
-    # Only show stick figure on the sandbox page
-    if pathname == '/sandbox':
-        stick_figure_html = html.Div([
-            html.Div([
-                html.Div([
-                    html.Div(className="cap"),
-                    html.Div([
-                        html.Div(id="left-eye", className="eye"),
-                        html.Div(id="right-eye", className="eye")
-                    ], className="eyes"),
-                    html.Div(className="mouth")
-                ], className="head"),
-                html.Div(className="torso"),
-                html.Div([html.Div(className="hand left-hand")], className="arm left-arm"),
-                html.Div([html.Div(className="hand right-hand")], className="arm right-arm"),
-                html.Div([html.Div(className="foot left-foot")], className="leg left-leg"),
-                html.Div([html.Div(className="foot right-foot")], className="leg right-leg")
-            ], id="robot", className="stick-figure")
-        ])
-        return stick_figure_html
-    else:
-        # Return an empty div for other pages
-        return html.Div()
+                    html.Div(id="left-eye", className="eye"),
+                    html.Div(id="right-eye", className="eye")
+                ], className="eyes"),
+                html.Div(className="mouth")
+            ], className="head"),
+            html.Div(className="torso"),
+            html.Div([html.Div(className="hand left-hand")], className="arm left-arm"),
+            html.Div([html.Div(className="hand right-hand")], className="arm right-arm"),
+            html.Div([html.Div(className="foot left-foot")], className="leg left-leg"),
+            html.Div([html.Div(className="foot right-foot")], className="leg right-leg")
+        ], id="robot", className="stick-figure")
+    ])
+    
+    return stick_figure_html
 
 @app.callback(
     Output('page-title', 'children'),
@@ -112,10 +85,6 @@ def update_title(pathname):
         return 'Chemical Engineering Economics'
     elif pathname == '/latex-converter':
         return 'LaTeX Constructor and Converter'
-    elif pathname == '/sandbox':
-        return 'Sandbox'
-    elif pathname == '/chemtools':
-        return 'Chemistry Tools'
     else:
         return 'My Website'
 
