@@ -70,16 +70,7 @@ head_component = html.Div([
     html.Link(
         rel='stylesheet',
         href='/assets/navbar-override.css'
-    ),
-    # Add the robot script directly 
-    html.Script(src='/assets/robot.js'),
-    
-    # Add a script to mark this as a fresh reload
-    html.Script('''
-    // Mark that this page was freshly loaded
-    window.isFreshSandboxLoad = true;
-    console.log('Sandbox page fresh load detected');
-    ''')
+    )
 ])
 
 # Game selection dropdown - positioned below navbar but not fixed to screen
@@ -186,7 +177,7 @@ layout = html.Div([
     dcc.Store(id='accuracy-start-time', data=None),
     dcc.Interval(id='reaction-interval', interval=100, n_intervals=0, disabled=True),
     
-    # JavaScript to add sandbox-active class to body and initialize functionality
+    # JavaScript to add sandbox-active class to body and initialize robot functionality
     html.Script('''
     document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.add('sandbox-active');
@@ -231,19 +222,7 @@ layout = html.Div([
         if (window.location.pathname.includes('sandbox')) {
             // We're on the sandbox page
             document.body.classList.add('sandbox-active');
-            console.log("Navigation detected to sandbox page, initializing features...");
-            
-            // Force reinitialize all features with a proper delay
-            const initFeatures = () => {
-                // Robot functionality is handled by the external robot.js script
-                initCustomCursor();
-                initPixelEffects();
-            };
-            
-            // Multiple attempts with increasing delays to ensure initialization
-            setTimeout(initFeatures, 100);
-            setTimeout(initFeatures, 500);
-            setTimeout(initFeatures, 1000);
+            initSandboxFunctionality();
         } else {
             // We're not on the sandbox page
             removeSandboxStyling();
@@ -253,7 +232,7 @@ layout = html.Div([
     // Initialize all sandbox page functionality
     function initSandboxFunctionality() {
         // Force init all features with slight delays to ensure DOM is ready
-        // Robot functionality is handled by the external robot.js script
+        setTimeout(initRobotFunctionality, 300);
         setTimeout(initCustomCursor, 100);
         setTimeout(initPixelEffects, 200);
     }
@@ -371,6 +350,91 @@ layout = html.Div([
         });
     }
     
+    // Initialize robot functionality
+    function initRobotFunctionality() {
+        // Get robot elements each time to ensure we have the latest DOM
+        const robot = document.getElementById('robot');
+        const leftEye = document.getElementById('left-eye');
+        const rightEye = document.getElementById('right-eye');
+        const mouth = document.querySelector('.mouth');
+        
+        if (!robot || !leftEye || !rightEye || !mouth) {
+            // Try again in a bit if elements aren't available yet
+            console.log("Robot elements not found, retrying...");
+            setTimeout(initRobotFunctionality, 300);
+            return;
+        }
+        
+        console.log("Robot eye tracking initialized");
+        
+        // Remove any existing event listeners first (to avoid duplicates)
+        document.removeEventListener('mousemove', trackEyes);
+        
+        // Create a named tracking function to be able to remove it later
+        function trackEyes(e) {
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            
+            // Get position of each eye
+            const leftRect = leftEye.getBoundingClientRect();
+            const rightRect = rightEye.getBoundingClientRect();
+            
+            // Calculate the center of each eye
+            const leftCenterX = leftRect.left + leftRect.width / 2;
+            const leftCenterY = leftRect.top + leftRect.height / 2;
+            const rightCenterX = rightRect.left + rightRect.width / 2;
+            const rightCenterY = rightRect.top + rightRect.height / 2;
+            
+            // Calculate angle between mouse and eye
+            const leftAngleRad = Math.atan2(mouseY - leftCenterY, mouseX - leftCenterX);
+            const rightAngleRad = Math.atan2(mouseY - rightCenterY, mouseX - rightCenterX);
+            
+            // Limited movement distance for pupil
+            const maxMovement = 1;
+            
+            // Move the pupils based on the angle
+            const leftX = Math.cos(leftAngleRad) * maxMovement;
+            const leftY = Math.sin(leftAngleRad) * maxMovement;
+            const rightX = Math.cos(rightAngleRad) * maxMovement;
+            const rightY = Math.sin(rightAngleRad) * maxMovement;
+            
+            leftEye.style.transform = `translate(${leftX}px, ${leftY}px)`;
+            rightEye.style.transform = `translate(${rightX}px, ${rightY}px)`;
+        }
+        
+        // Add the named function as event listener
+        document.addEventListener('mousemove', trackEyes);
+        
+        // Handle hovering over navbar links - mouth opens
+        const navLinks = document.querySelectorAll('.navbar a');
+        navLinks.forEach(link => {
+            link.addEventListener('mouseenter', () => {
+                mouth.style.height = '6px';
+                mouth.style.bottom = '25%';
+            });
+            
+            link.addEventListener('mouseleave', () => {
+                mouth.style.height = '2px';
+                mouth.style.bottom = '30%';
+            });
+        });
+        
+        // Handle hovering over robot - robot smiles
+        robot.addEventListener('mouseenter', () => {
+            mouth.style.height = '2px';
+            mouth.style.width = '60%';
+            mouth.style.borderRadius = '0 0 90px 90px';
+            mouth.style.bottom = '25%';
+        });
+        
+        robot.addEventListener('mouseleave', () => {
+            mouth.style.width = '40%';
+            mouth.style.height = '2px';
+            mouth.style.borderRadius = '0';
+            mouth.style.bottom = '30%';
+        });
+    }
+    
     // Enhanced cleanup function to ensure ALL styling is removed
     function removeSandboxStyling() {
         document.body.classList.remove('sandbox-active');
@@ -409,46 +473,6 @@ layout = html.Div([
         // Force cursor back to default
         document.body.style.cursor = '';
     }
-
-    // Add an event listener for SPA navigation using Dash's update-component event
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initial setup for sandbox page
-        if (window.location.pathname.includes('sandbox')) {
-            document.body.classList.add('sandbox-active');
-            initSandboxFunctionality();
-        }
-        
-        // Setup MutationObserver to detect Dash content updates
-        const observer = new MutationObserver(function(mutations) {
-            // We no longer need to check for robot elements here
-            // Robot functionality is handled by the external robot.js script
-        });
-        
-        // Start observing the document body for DOM changes
-        observer.observe(document.body, { childList: true, subtree: true });
-        
-        // For History API (SPA navigation)
-        const oldPushState = history.pushState;
-        history.pushState = function() {
-            oldPushState.apply(this, arguments);
-            console.log("History state changed to:", window.location.pathname);
-            handleUrlChange();
-        };
-        
-        const oldReplaceState = history.replaceState;
-        history.replaceState = function() {
-            oldReplaceState.apply(this, arguments);
-            console.log("History state replaced with:", window.location.pathname);
-            handleUrlChange();
-        };
-        
-        // For back/forward navigation
-        window.addEventListener('popstate', function() {
-            console.log("Popstate event detected, location:", window.location.pathname);
-            handleUrlChange();
-        });
-    });
-    
     ''')
     
 ], className="container retro-container", style={'minHeight': '100vh', 'paddingTop': '20px', 'paddingBottom': '20px', 'position': 'relative'})

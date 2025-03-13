@@ -447,22 +447,23 @@ def parse_reaction_equation(equation):
     # Parse coefficients and compounds for reactants
     parsed_reactants = []
     for reactant in reactants:
-        match = re.match(r"^(\d*)(\w+)$", reactant)
+        # Match pattern for coefficient and compound, handling complex formulas with parentheses
+        match = re.match(r"^(\d*)([A-Za-z0-9()]+)$", reactant)
         if not match:
             return None, f"Invalid reactant format: {reactant}"
         coef, compound = match.groups()
         coef = int(coef) if coef else 1
-        parsed_reactants.append({"compound": compound, "coefficient": coef})
+        parsed_reactants.append({"compound": compound, "coefficient": coef, "display": format_chemical_formula_components(reactant)})
     
     # Parse coefficients and compounds for products
     parsed_products = []
     for product in products:
-        match = re.match(r"^(\d*)(\w+)$", product)
+        match = re.match(r"^(\d*)([A-Za-z0-9()]+)$", product)
         if not match:
             return None, f"Invalid product format: {product}"
         coef, compound = match.groups()
         coef = int(coef) if coef else 1
-        parsed_products.append({"compound": compound, "coefficient": coef})
+        parsed_products.append({"compound": compound, "coefficient": coef, "display": format_chemical_formula_components(product)})
     
     return {
         "reactants": parsed_reactants,
@@ -566,8 +567,6 @@ def calculate_stoichiometry(reaction_data, input_data, conversion_percentage=100
 
 # Define the layout for the stoichiometry calculator
 stoichiometry_calculator = html.Div([
-    html.H2("Stoichiometry Calculator"),
-    
     html.Div([
         html.Label([
             "Chemical Reaction Equation (e.g., '2H",
@@ -633,9 +632,7 @@ stoichiometry_calculator = html.Div([
         ])
     ], style={"display": "flex", "alignItems": "center", "marginTop": "20px"}),
     html.Div(id="compound-inputs-container", style={"marginTop": "20px", "display": "none"}),
-    
     html.Button("Calculate", id="calculate-button", n_clicks=0, style={"marginTop": "20px", "display": "none"}),
-    
     html.Div(id="calculation-results", style={"marginTop": "20px"})
 ])
 
@@ -688,8 +685,6 @@ molecular_visualization_tool = html.Div([
 
 # Main layout with tabs for different chemistry tools
 layout = html.Div([
-    html.H1("Chemistry Tools"),
-    
     dcc.Dropdown(
         id='chem-tool-selector',
         options=[
@@ -899,7 +894,7 @@ def parse_reaction(n_clicks, n_submit, equation, conversion_toggle):
             )
         ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px", "display": "flex", "flexWrap": "wrap", "gap": "10px", "alignItems": "center"}))
     
-    products_display = []
+    # Add products
     for product in parsed_reaction["products"]:
         compound = product["compound"]
         molar_mass = molar_masses[compound]
