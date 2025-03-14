@@ -1,6 +1,5 @@
 from dash import html, dcc, callback, Output, Input, State, dash_table, clientside_callback
 import dash
-import thermo
 import re
 import pandas as pd
 from sympy import symbols, Eq, solve, Symbol
@@ -12,6 +11,9 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
 import pubchempy as pcp
 import json
+
+# Add ChemPy for molecular weight calculations
+from chempy import Substance
 
 dash.register_page(__name__, path='/chemtools', name="Chemistry Tools")
 
@@ -32,15 +34,15 @@ def format_chemical_formula_components(formula):
     
     components = []
     # Add the coefficient if it exists
-    if coefficient:
+    if (coefficient):
         components.append((coefficient, False))
     
-    # Process the chemical part
+    # Improved parsing that properly handles two-letter element symbols
     i = 0
     while i < len(chemical_part):
         char = chemical_part[i]
         
-        # Case 1: Opening parenthesis, find the matching closing and look for subscript
+        # Case 1: Opening parenthesis
         if (char == '('):
             # Find the closing parenthesis
             paren_depth = 1
@@ -65,12 +67,19 @@ def format_chemical_formula_components(formula):
                 subscript = chemical_part[subscript_start:i]
                 components.append((subscript, True))
         
-        # Case 2: Letter followed by digits (e.g., H2)
-        elif char.isalpha():
-            components.append((char, False))
+        # Case 2: Capital letter (start of an element symbol)
+        elif char.isupper():
+            element = char
             i += 1
             
-            # Check for subscripts (digits after a letter)
+            # Check for lowercase letters that are part of the same element symbol (e.g., Na, Mg)
+            while i < len(chemical_part) and chemical_part[i].islower():
+                element += chemical_part[i]
+                i += 1
+                
+            components.append((element, False))
+            
+            # Check for subscripts (digits after an element)
             if i < len(chemical_part) and chemical_part[i].isdigit():
                 subscript_start = i
                 while i < len(chemical_part) and chemical_part[i].isdigit():
@@ -78,7 +87,7 @@ def format_chemical_formula_components(formula):
                 subscript = chemical_part[subscript_start:i]
                 components.append((subscript, True))
         
-        # Case 3: Any other character
+        # Case 3: Any other character (should not normally occur in valid formulas)
         else:
             components.append((char, False))
             i += 1
@@ -376,27 +385,27 @@ def create_viewer_html(mol):
                     Jmol.script(jmolApplet0, "zap");
                     var loadCmd = 'load DATA "pdb"\\n' + pdbData + '\\nEND "pdb"';
                     Jmol.script(jmolApplet0, loadCmd);
-                    
+
                     // Get the elements present in the loaded model
                     var styling = [
                         "select all;",
                         "wireframe 0.15;", 
                         "spacefill 25%;",
-                        
+
                         // Common element colors 
                         "select hydrogen; color white;",
                         "select carbon; color [144,144,144];", 
                         "select nitrogen; color [48,80,248];", 
                         "select oxygen; color [255,13,13];",   
                         "select sulfur; color [255,255,48];", 
-                        
+
                         // Additional element colors
                         "select phosphorus; color [255,128,0];",
                         "select fluorine; color [144,224,80];", 
                         "select chlorine; color [31,240,31];",  
                         "select bromine; color [166,41,41];",   
                         "select iodine; color [148,0,148];",    
-                        
+
                         // General settings
                         "set showHydrogens TRUE;",
                         "zoom 80;", 
@@ -473,8 +482,80 @@ def parse_reaction_equation(equation):
 # Function to get molar mass for a compound
 def get_molar_mass(compound):
     try:
-        return thermo.Chemical(compound).MW
+        # Add debugging to see what elements are detected in the compound
+        print(f"Parsing compound: {compound}")
+        
+        # Debug parsed elements using our format_chemical_formula_components function
+        parsed_components = format_chemical_formula_components(compound)
+        elements = []
+        current_element = None
+        current_count = 1
+        
+        # Go through the parsed components and extract element-count pairs
+        for text, is_subscript in parsed_components:
+            if not is_subscript and text != '(' and text != ')':
+                if current_element and current_count:
+                    elements.append((current_element, current_count))
+                current_element = text
+                current_count = 1
+            elif is_subscript and current_element:
+                try:
+                    current_count = int(text)
+                except ValueError:
+                    print(f"  Warning: Could not parse subscript {text} as integer")
+        
+        # Don't forget the last element
+        if current_element and current_count:
+            elements.append((current_element, current_count))
+        
+        print(f"  Detected elements: {elements}")
+        
+        # Calculate molar mass using ChemPy
+        try:
+            substance = Substance.from_formula(compound)
+            molar_mass = substance.molar_mass()
+            print(f"  Molar mass from ChemPy: {molar_mass:.4f} g/mol")
+            
+            # If we got here, ChemPy successfully calculated a molar mass
+            # Store this value in case subsequent operations fail
+            successful_molar_mass = molar_mass
+            
+            # Verify by calculating element-by-element
+            calc_molar_mass = 0
+            for element, count in elements:
+                try:
+                    # Get molar mass for individual element using ChemPy
+                    element_substance = Substance.from_formula(element)
+                    element_mw = element_substance.molar_mass()
+                    calc_molar_mass += element_mw * count
+                    print(f"  {element}: {count} × {element_mw:.4f} g/mol = {element_mw * count:.4f} g/mol")
+                except Exception as elem_error:
+                    print(f"  Warning: Could not get molar mass for {element}: {str(elem_error)}")
+            
+            print(f"  Calculated molar mass: {calc_molar_mass:.2f} g/mol ({molar_mass:.2f} g/mol)")
+            
+            return molar_mass
+            
+        except Exception as chempy_error:
+            # Important fix: Check if we already got a valid molar mass value before the error
+            if 'successful_molar_mass' in locals() and successful_molar_mass > 0:
+                print(f"  ChemPy calculated mass ({successful_molar_mass:.4f} g/mol) but then encountered an error: {str(chempy_error)}")
+                print(f"  Using the successfully calculated mass anyway")
+                return successful_molar_mass
+            
+            print(f"  ChemPy error: {str(chempy_error)}")
+            
+            # Try element-by-element calculation as fallback
+            if 'calc_molar_mass' in locals() and calc_molar_mass > 0:
+                print(f"  Using our manual element-by-element calculation as fallback: {calc_molar_mass:.4f} g/mol")
+                return calc_molar_mass
+            
+            # If we couldn't calculate the mass, return None
+            print(f"  ERROR: Could not calculate molar mass for {compound}")
+            return None
+        
     except Exception as e:
+        print(f"  ERROR getting molar mass for {compound}: {str(e)}")
         return None
 
 def calculate_stoichiometry(reaction_data, input_data, conversion_percentage=100):
@@ -596,19 +677,10 @@ stoichiometry_calculator = html.Div([
                     style={"display": "inline-block", "marginRight": "15px"}
                 ),
             ]),
-            # Add 3D visualization checkbox
-            html.Div(id="3d-model-checkbox-container", style={"display": "none"}, children=[
-                dcc.Checklist(
-                    id="3d-model-toggle",
-                    options=[{"label": "Show 3D Models", "value": "show"}],
-                    value=[],
-                    style={"display": "inline-block", "marginRight": "15px"}
-                ),
-            ]),
-            # Always add the slider to DOM but keep it hidden - this prevents the "nonexistent object" error
+            # Remove the 3D model checkbox from stoichiometry calculator
         ], style={"display": "flex", "alignItems": "center"}),
     ]),
-    # Updated container: restrict width of reaction parse output
+    # Updated Container: restrict width of reaction parse output
     html.Div([
         html.Div(id="reaction-parse-output", style={"flex": "0 1 auto", "maxWidth": "600px"}),
         html.Div(id="conversion-slider-container", style={
@@ -616,7 +688,7 @@ stoichiometry_calculator = html.Div([
             "width": "300px",
             "marginLeft": "10px",
             "position": "relative", 
-            "top": "0px",   # shift the slider down slightly
+            "top": "0px",   # Shift the slider down slightly
             "verticalAlign": "middle"
         }, children=[
             dcc.Slider(
@@ -736,8 +808,9 @@ def render_tool_content(selected_tool):
         Output("conversion-checkbox-container", "style"),  # Show/hide checkbox container instead of disabling
         Output("reaction-data-json", "children"),  # Store reaction data as JSON
         Output("molar-masses-store", "data"),  # Store molar masses
-        Output("3d-model-checkbox-container", "style"),  # Show/hide 3D model checkbox
-        Output("molecule-models-store", "data"),  # Store molecule models data
+        # Remove the 3D model checkbox output
+        # Output("3d-model-checkbox-container", "style"),  
+        Output("molecule-models-store", "data"),  # Keep store but don't use for stoichiometry
     ],
     [
         Input("parse-button", "n_clicks"),
@@ -754,32 +827,36 @@ def parse_reaction(n_clicks, n_submit, equation, conversion_toggle):
     
     # Only check for empty equation when button has been clicked or Enter pressed
     if trigger_count > 0 and not equation:
-        return "Please enter a reaction equation", {"display": "none"}, None, {"display": "none"}, {"display": "none"}, {"display": "none"}, None, None, {"display": "none"}, None
+        return "Please enter a reaction equation", {"display": "none"}, None, {"display": "none"}, {"display": "none"}, {"display": "none"}, None, None, None
     
     # If neither button clicked nor Enter pressed, return empty response
     if trigger_count == 0:
-        return "", {"display": "none"}, None, {"display": "none"}, {"display": "none"}, {"display": "none"}, None, None, {"display": "none"}, None
+        return "", {"display": "none"}, None, {"display": "none"}, {"display": "none"}, {"display": "none"}, None, None, None
     
     parsed_reaction, message = parse_reaction_equation(equation)
     
     if parsed_reaction is None:
-        return message, {"display": "none"}, None, {"display": "none"}, {"display": "none"}, {"display": "none"}, None, None, {"display": "none"}, None
+        return message, {"display": "none"}, None, {"display": "none"}, {"display": "none"}, {"display": "none"}, None, None, None
     
     # Create a dictionary to store molar masses
     molar_masses = {}
     
-    # Create a dictionary to store molecule visualization data - start with empty
-    # We'll load models asynchronously later
-    molecule_models = {}
-    
     # Get molar masses for all compounds
+    print("\n----- Calculating molar masses for all compounds in reaction -----")
     for reactant in parsed_reaction["reactants"]:
         compound = reactant["compound"]
+        print(f"\nReactant: {compound}")
         molar_masses[compound] = get_molar_mass(compound)
     
     for product in parsed_reaction["products"]:
         compound = product["compound"]
+        print(f"\nProduct: {compound}")
         molar_masses[product["compound"]] = get_molar_mass(product["compound"])
+    
+    print("\n----- Summary of calculated molar masses -----")
+    for compound, mass in molar_masses.items():
+        print(f"{compound}: {mass:.4f} g/mol" if mass else f"{compound}: Failed to calculate molar mass")
+    print("---------------------------------------------\n")
     
     show_slider = "show" in conversion_toggle
     slider_style = {"display": "inline-block", "width": "300px", "marginLeft": "10px", "verticalAlign": "middle"} if show_slider else {"display": "none"}
@@ -819,7 +896,7 @@ def parse_reaction(n_clicks, n_submit, equation, conversion_toggle):
         }
     )
     
-    # Create compound boxes with input fields for reactants and products
+    # Create compound boxes with input fields for reactants and products (without 3D model containers)
     compound_inputs = []
     
     # Add reactants
@@ -827,9 +904,8 @@ def parse_reaction(n_clicks, n_submit, equation, conversion_toggle):
         compound = reactant["compound"]
         molar_mass = molar_masses[compound]
         
-        # Create a container for the reactant that will hold the input form and potentially the 3D model
+        # Create a container for the reactant (simplified without 3D model area)
         compound_inputs.append(html.Div([
-            # Main compound info and input fields
             html.Div([
                 html.Div([
                     html.Span([*create_formula_display(compound)]),
@@ -884,46 +960,30 @@ def parse_reaction(n_clicks, n_submit, equation, conversion_toggle):
                         ])
                     ], style={"display": "flex", "alignItems": "center"})
                 ])
-            ], style={"flex": "1"}),
-            
-            # Container for 3D model (initially hidden)
-            html.Div(
-                id={"type": "3d-model-container", "compound": compound},
-                style={"display": "none", "flex": "1", "minWidth": "150px"},
-                children=[]
-            )
-        ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px", "display": "flex", "flexWrap": "wrap", "gap": "10px", "alignItems": "center"}))
+            ], style={"width": "100%"})
+        ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px"}))
     
-    # Add products
+    # Add products (simplified without 3D model area)
     for product in parsed_reaction["products"]:
         compound = product["compound"]
         molar_mass = molar_masses[compound]
         
-        # Create a container for the product that will hold the result and potentially the 3D model
         compound_inputs.append(html.Div([
-            # Main compound info and results
             html.Div([
                 html.Div([
                     *create_formula_display(compound),
                     f" ({molar_mass:.2f} g/mol)" if molar_mass else ""
                 ], style={"fontSize": "1.2em", "marginBottom": "10px"}),
                 html.Div([
-                    html.Span("Produced: ", id={"type": "produced-text", "compound": compound}, style={"marginRight": "5px", "visibility": "hidden"}),
-                    html.Span(id={"type": "produced-moles", "compound": compound}, children="", style={"visibility": "hidden"}),
-                    html.Span(" moles ", id={"type": "produced-moles-text", "compound": compound}, style={"marginRight": "5px", "visibility": "hidden"}),
-                    html.Span("(", id={"type": "produced-paren1", "compound": compound}, style={"visibility": "hidden"}),
-                    html.Span(id={"type": "produced-grams", "compound": compound}, children="", style={"visibility": "hidden"}),
-                    html.Span(" grams)", id={"type": "produced-paren2", "compound": compound}, style={"visibility": "hidden"})
+                    html.Span("Produced: ", id={"type": "produced-text", "compound": compound}, style={"marginRight": "5px"}),
+                    html.Span(id={"type": "produced-moles", "compound": compound}, children=""),
+                    html.Span(" moles ", id={"type": "produced-moles-text", "compound": compound}, style={"marginRight": "5px"}),
+                    html.Span("(", id={"type": "produced-paren1", "compound": compound}),
+                    html.Span(id={"type": "produced-grams", "compound": compound}, children=""),
+                    html.Span(" grams)", id={"type": "produced-paren2", "compound": compound})
                 ])
-            ], style={"flex": "1"}),
-            
-            # Container for 3D model (initially hidden)
-            html.Div(
-                id={"type": "3d-model-container", "compound": compound},
-                style={"display": "none", "flex": "1", "minWidth": "150px"},
-                children=[]
-            )
-        ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px", "display": "flex", "flexWrap": "wrap", "gap": "10px", "alignItems": "center"}))
+            ], style={"width": "100%"})
+        ], style={"marginBottom": "20px", "padding": "10px", "border": "1px solid #ddd", "borderRadius": "5px"}))
     
     # Store data for later use
     inputs_container = html.Div([
@@ -937,7 +997,11 @@ def parse_reaction(n_clicks, n_submit, equation, conversion_toggle):
     # Show the checkbox containers after parsing and enable them
     checkbox_style = {"display": "inline-block"}
     
-    return parsed_output, {"display": "block", "marginTop": "20px"}, inputs_container, {"display": "block", "marginTop": "20px"}, slider_style, checkbox_style, reaction_data_json, molar_masses, checkbox_style, molecule_models
+    # Initialize empty molecule_models dictionary
+    molecule_models = {}
+    
+    # Remove the 3D model checkbox style from the return
+    return parsed_output, {"display": "block", "marginTop": "20px"}, inputs_container, {"display": "block", "marginTop": "20px"}, slider_style, checkbox_style, reaction_data_json, molar_masses, molecule_models
 
 @callback(
     [Output({"type": "moles-input", "compound": dash.ALL}, "disabled"),
@@ -958,7 +1022,7 @@ def disable_inputs(moles_values, grams_values):
     for i in range(n_compounds):
         if moles_values[i]:
             grams_disabled[i] = True
-        elif grams_values[i]:
+        elif grams_values[i]:  # Fixed variable name from grams[i] to grams_values[i]
             moles_disabled[i] = True
     
     return moles_disabled, grams_disabled
@@ -1349,49 +1413,6 @@ clientside_callback(
     ]
 )
 
-@callback(
-    [Output('molecule-viewer', 'children'),
-     Output('error-message', 'children'),
-     Output('chemical-name', 'children'),
-     Output('loading-output', 'children')],
-    [Input('submit-button', 'n_clicks'),
-     Input('chemical-input', 'n_submit')],
-    [State('chemical-input', 'value')]
-)
-def update_molecule(n_clicks, n_submit, chemical_name):
-    # Function is triggered by either button click or Enter key
-    if not chemical_name:
-        return [], "Please enter a chemical name", "", []
-    
-    smiles, name_or_error = get_smiles_from_name(chemical_name)
-    if smiles is None:
-        return [], name_or_error, "", []
-    
-    mol, error = create_molecule_from_smiles(smiles)
-    if error:
-        return [], f"Error creating 3D model: {error}", "", []
-    
-    # Use appropriate styling for iframe - ensure 100% height with no scrollbar
-    viewer = html.Iframe(
-        srcDoc=create_viewer_html(mol),
-        style={
-            'width': '100%', 
-            'height': '70vh', 
-            'border': 'none',
-            'overflow': 'hidden',
-            'display': 'block'
-        }
-    )
-    
-    # Display the chemical name
-    name_display = html.H4(name_or_error or chemical_name.capitalize())
-    
-    return viewer, "", name_display, []
-
-# New callback to load molecule models asynchronously after the reaction has been parsed
-# This callback was redundant and can be removed since we're using preload_molecule_models instead
-# Delete this callback entirely
-
 # Add a new callback for preloading 3D models right after reaction parsing
 @callback(
     Output("molecule-models-store", "data", allow_duplicate=True),
@@ -1477,7 +1498,7 @@ def update_3d_models(n_clicks, toggle_value, molecule_models, model_ids):
         compound = container_id["compound"]
         
         # Show container if we have SMILES data for this compound
-        if compound in molecule_models and molecule_models[compound].get("smiles"):
+        if (compound in molecule_models and molecule_models[compound].get("smiles")):
             print(f"Showing 3D model for {compound}")
             styles.append({
                 "display": "block", 
