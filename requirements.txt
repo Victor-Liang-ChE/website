@@ -30,3 +30,4 @@ pykakasi==2.3.0
 sympy==1.13.1
 rdkit==2024.9.5
 pubchempy==1.0.4
+yt-dlp==2025.2.19

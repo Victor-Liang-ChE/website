@@ -116,6 +116,8 @@ def update_title(pathname):
         return 'Sandbox'
     elif pathname == '/chemtools':
         return 'Chemistry Tools'
+    elif pathname == '/youtube-downloader':
+        return 'Youtube Downloader'
     else:
         return 'My Website'
 

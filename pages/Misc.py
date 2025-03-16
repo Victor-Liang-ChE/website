@@ -19,5 +19,7 @@ layout = html.Div([
             href="/sandbox"),
         dcc.Link(html.Div("Chemistry Tools", className="box"), \
             href="/chemtools"),
+        dcc.Link(html.Div("YouTube Downloader", className="box"), \
+            href="/youtube-downloader")
     ], className="box-container", style={'display': 'grid', 'gridTemplateColumns': 'repeat(3, 1fr)', 'gap': '10px'})
 ], className="container")

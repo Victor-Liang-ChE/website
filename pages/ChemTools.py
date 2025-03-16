@@ -732,10 +732,10 @@ molecular_visualization_tool = html.Div([
             n_submit=0
         ),
         html.Button('Visualize', id='submit-button', n_clicks=0, style={'marginRight': '10px'}),
-        # Move loading circle to the right so it doesn't overlap the button
+        # Move loading circle more to the right
         html.Div(
             id='loading-container',
-            style={'display': 'inline-block', 'verticalAlign': 'middle', 'position': 'relative', 'left': '10px'},
+            style={'display': 'inline-block', 'verticalAlign': 'middle', 'position': 'relative', 'left': '30px'},
             children=[
                 dcc.Loading(
                     id="loading-search",
@@ -1589,3 +1589,48 @@ clientside_callback(
     ],
     prevent_initial_call=True
 )
+
+# Add back the callback for molecular visualization that was removed
+@callback(
+    [Output('molecule-viewer', 'children'),
+     Output('error-message', 'children'),
+     Output('chemical-name', 'children'),
+     Output('loading-output', 'children')],
+    [Input('submit-button', 'n_clicks'),
+     Input('chemical-input', 'n_submit')],
+    [State('chemical-input', 'value')]
+)
+def update_molecule(n_clicks, n_submit, chemical_name):
+    # Check if this is an initial load (no click or submit) or a user action
+    if n_clicks == 0 and n_submit == 0:
+        # Initial load - don't show any warning
+        return [], "", "", []
+    
+    # Function is triggered by user action (button click or Enter key)
+    if not chemical_name:
+        return [], "Please enter a chemical name", "", []
+    
+    smiles, name_or_error = get_smiles_from_name(chemical_name)
+    if smiles is None:
+        return [], name_or_error, "", []
+    
+    mol, error = create_molecule_from_smiles(smiles)
+    if error:
+        return [], f"Error creating 3D model: {error}", "", []
+    
+    # Use appropriate styling for iframe - ensure 100% height with no scrollbar
+    viewer = html.Iframe(
+        srcDoc=create_viewer_html(mol),
+        style={
+            'width': '100%', 
+            'height': '70vh', 
+            'border': 'none',
+            'overflow': 'hidden',
+            'display': 'block'
+        }
+    )
+    
+    # Display the chemical name
+    name_display = html.H4(name_or_error or chemical_name.capitalize())
+    
+    return viewer, "", name_display, []
