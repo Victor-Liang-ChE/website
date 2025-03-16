@@ -6,9 +6,9 @@ COPY requirements.txt .
 
 RUN python -m pip install -r requirements.txt
 
-# # Install Nginx
-RUN apt-get update 
-RUN apt-get install 
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 
